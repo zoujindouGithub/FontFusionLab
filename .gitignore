@@ -1,0 +1,18 @@
+# 二进制字体产物不入库（GitHub 100MB 限制 + 可由脚本重建）
+merged-v4/*.ttf
+*.ttf
+!FiraCode-src/*.ttf
+!MapleMono-src/*.ttf
+!MapleItalic-src/*.ttf
+archives/
+
+# 源字体 zip 体积过大（GitHub 单文件 100MB 限制），不入库
+archives/*.zip
+
+# Python
+__pycache__/
+*.pyc
+
+# 渲染对比等临时产物
+_tmp/
+*.tmp
