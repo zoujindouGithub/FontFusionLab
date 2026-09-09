@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/zouji/FiraCodeMapleMono/releases"><img src="https://img.shields.io/github/v/release/zouji/FiraCodeMapleMono?include_prereleases&color=brightgreen" alt="Release"></a>
+  <a href="https://github.com/zoujindouGithub/FiraCodeMapleMono/releases"><img src="https://img.shields.io/github/v/release/zoujindouGithub/FiraCodeMapleMono?include_prereleases&color=brightgreen" alt="Release"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-OFL--1.1-blue.svg" alt="License: OFL-1.1"></a>
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
@@ -52,7 +52,7 @@ Each full-width CJK character occupies exactly 2 standard Latin cells (2400 desi
 
 ### Option A: Direct Download (Recommended)
 
-1. Go to the **[Releases](https://github.com/zouji/FiraCodeMapleMono/releases)** page and download `FiraCodeMapleMono-v1.0.zip`.
+1. Go to the **[Releases](https://github.com/zoujindouGithub/FiraCodeMapleMono/releases)** page and download `FiraCodeMapleMono-v1.0.zip`.
 2. Extract the archive to get four `.ttf` files:
    - `FiraCodeMapleMono-Regular.ttf`
    - `FiraCodeMapleMono-Bold.ttf`
@@ -123,7 +123,7 @@ This project provides a fully reproducible and self-contained build pipeline.
 ### Build Steps
 ```bash
 # 1. Clone the repository
-git clone https://github.com/zouji/FiraCodeMapleMono.git
+git clone https://github.com/zoujindouGithub/FiraCodeMapleMono.git
 cd FiraCodeMapleMono
 
 # 2. Run the build script (generates 4 fonts into merged-v4/)

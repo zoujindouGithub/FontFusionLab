@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/zouji/FiraCodeMapleMono/releases"><img src="https://img.shields.io/github/v/release/zouji/FiraCodeMapleMono?include_prereleases&color=brightgreen" alt="Release"></a>
+  <a href="https://github.com/zoujindouGithub/FiraCodeMapleMono/releases"><img src="https://img.shields.io/github/v/release/zoujindouGithub/FiraCodeMapleMono?include_prereleases&color=brightgreen" alt="Release"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-OFL--1.1-blue.svg" alt="License: OFL-1.1"></a>
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
@@ -52,7 +52,7 @@
 
 ### 方案 A：直接下载安装（推荐）
 
-1. 前往 **[Releases](https://github.com/zouji/FiraCodeMapleMono/releases)** 页面下载最新发布的 `FiraCodeMapleMono-v1.0.zip`。
+1. 前往 **[Releases](https://github.com/zoujindouGithub/FiraCodeMapleMono/releases)** 页面下载最新发布的 `FiraCodeMapleMono-v1.0.zip`。
 2. 解压压缩包，得到 4 个 `.ttf` 字体文件：
    - `FiraCodeMapleMono-Regular.ttf`
    - `FiraCodeMapleMono-Bold.ttf`
@@ -123,7 +123,7 @@ FiraCode Maple Mono
 ### 构建步骤
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/zouji/FiraCodeMapleMono.git
+git clone https://github.com/zoujindouGithub/FiraCodeMapleMono.git
 cd FiraCodeMapleMono
 
 # 2. 执行全量构建 (自动生成 4 个字面到 merged-v4 目录)
