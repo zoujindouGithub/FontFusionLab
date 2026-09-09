@@ -1,5 +1,5 @@
 # FiraCode Maple Mono 终态安装与环境同步脚本
-# 动态解析脚本目录，杜绝硬编码绝对路径
+# 动态解析脚本目录，支持槽位热替换与系统级字体变更广播
 $ErrorActionPreference = 'Continue'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
@@ -15,8 +15,12 @@ Write-Output "=========================================="
 Add-Type -Name Native -Namespace Win32 -MemberDefinition @'
 [DllImport("gdi32.dll", CharSet = CharSet.Auto)]
 public static extern int RemoveFontResource(string lpFileName);
+
 [DllImport("gdi32.dll", CharSet = CharSet.Auto)]
 public static extern int AddFontResource(string lpFileName);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto)]
+public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 '@
 
 $subfamilies = @('Regular', 'Bold', 'Italic', 'BoldItalic')
@@ -25,39 +29,54 @@ $subfamilies = @('Regular', 'Bold', 'Italic', 'BoldItalic')
 foreach ($sub in $subfamilies) {
     $baseName = "FiraCodeMapleMono-$sub"
     $srcFile = Join-Path $MergedDir "$baseName.ttf"
-    $destFile = Join-Path $FontDir "$baseName.ttf"
 
     if (-not (Test-Path -LiteralPath $srcFile)) {
         Write-Error "源文件不存在: $srcFile"
         continue
     }
 
-    # 如果有被锁定的旧文件，先行解除注册
-    if (Test-Path -LiteralPath $destFile) {
-        [Win32.Native]::RemoveFontResource($destFile) | Out-Null
+    # 获取注册表当前指向的路径
+    $currentRegVal = (Get-ItemProperty -Path $RegPath -Name "$baseName (TrueType)" -ErrorAction SilentlyContinue)."$baseName (TrueType)"
+
+    # 定义候选槽位：标准名 -> -v42 -> -v41
+    $candidates = @(
+        (Join-Path $FontDir "$baseName.ttf"),
+        (Join-Path $FontDir "$baseName-v42.ttf"),
+        (Join-Path $FontDir "$baseName-v41.ttf")
+    )
+
+    $installedFile = $null
+    foreach ($cand in $candidates) {
+        try {
+            Copy-Item -LiteralPath $srcFile -Destination $cand -Force -ErrorAction Stop
+            $installedFile = $cand
+            break
+        } catch {
+            # 当前槽位被系统进程锁定，尝试下一个槽位
+        }
     }
 
-    $installedFile = $destFile
-    try {
-        Copy-Item -LiteralPath $srcFile -Destination $destFile -Force -ErrorAction Stop
-        Write-Output "  [OK] $baseName -> 已安装至标准路径"
-    } catch {
-        # 若当前运行的终端仍占用标准文件名句柄，安全采用版本后缀规避锁定冲突
-        $installedFile = Join-Path $FontDir "$baseName-v41.ttf"
-        Copy-Item -LiteralPath $srcFile -Destination $installedFile -Force
-        Write-Output "  [WARN] $baseName -> 标准文件被系统占用，已通过热更新槽位安装 ($installedFile)"
+    if (-not $installedFile) {
+        Write-Error "无法写入字体 $baseName 到任何候选槽位，请关闭相关终端进程后重试"
+        continue
     }
 
-    # 注册表项与 GDI 注册
+    # 如果切换到了新槽位，解除旧槽位的 GDI 注册
+    if ($currentRegVal -and ($currentRegVal -ne $installedFile) -and (Test-Path -LiteralPath $currentRegVal)) {
+        [Win32.Native]::RemoveFontResource($currentRegVal) | Out-Null
+    }
+
+    # 注册新槽位到注册表与 GDI
     New-ItemProperty -Path $RegPath -Name "$baseName (TrueType)" -Value $installedFile -PropertyType String -Force | Out-Null
     [Win32.Native]::AddFontResource($installedFile) | Out-Null
+    Write-Output "  [OK] $baseName -> 已安装至: $(Split-Path -Leaf $installedFile)"
 }
 
-# 2. 清理历史遗留的旧版改名孤儿文件（如 FiraCodeMapleCN 等）
-Get-ChildItem $FontDir -Filter "FiraCodeMapleCN*.ttf" -ErrorAction SilentlyContinue | ForEach-Object {
-    [Win32.Native]::RemoveFontResource($_.FullName) | Out-Null
-    try { Remove-Item $_.FullName -Force -ErrorAction Stop } catch {}
-}
+# 2. 异步广播 WM_FONTCHANGE 消息，通知系统所有打开的终端与编辑器刷新字体资源
+$HWND_BROADCAST = [IntPtr]0xffff
+$WM_FONTCHANGE = 0x001d
+[Win32.Native]::PostMessage($HWND_BROADCAST, $WM_FONTCHANGE, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+Write-Output "  [OK] 已异步广播系统级 WM_FONTCHANGE 字体刷新事件"
 
 # 3. 同步 6 个 VSCode 衍生 IDE 的配置
 Write-Output "`n同步 IDE 配置..."

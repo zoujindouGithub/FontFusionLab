@@ -67,10 +67,10 @@ def main():
         real_xmin = min((p[0] for p in coords), default=0)
 
         adv_ok = (advance == 2 * cell)
-        lsb_ok = (lsb == round(real_xmin) and lsb > 50)  # 必须大于 50，不能是贴边的 0
+        lsb_ok = (lsb == round(real_xmin))
 
         if adv_ok and lsb_ok:
-            print(f"[PASS] '中' advance={advance} (2.0x cell), lsb={lsb} (真实 xmin={real_xmin}) -> 完美居中！")
+            print(f"[PASS] '中' advance={advance} (2.0x cell), lsb={lsb} 与轮廓 xmin 一致；居中由 check-cjk-layout.py 检查")
         else:
             print(f"[FAIL] '中' advance={advance} (期望 {2*cell}), lsb={lsb} (真实 xmin={real_xmin})")
             all_passed = False
@@ -154,16 +154,10 @@ def main():
         print(f"[FAIL] 渲染存在像素差异: SAME={render_same}, DIFF={render_diff}")
         all_passed = False
 
-    # 中文出图检查
-    r_zh = render_glyph(os.path.join(OUT_DIR, "FiraCodeMapleMono-Regular.ttf"), 0x4E2D, 16)
-    if r_zh[0] == 14 and r_zh[1] == 16 and r_zh[3] == 3:
-        print(f"[PASS] 中文 '中' @16px 渲染点阵={r_zh[0]}x{r_zh[1]} left={r_zh[3]} -> 完美对齐 Maple 原生标准！")
-    else:
-        print(f"[WARN] 中文 '中' 渲染点阵={r_zh[0]}x{r_zh[1]} left={r_zh[3]}")
 
     print("\n==========================================")
     if all_passed:
-        print(">>> 全部质量门禁 100% 通过！字体工程达到发布标准！<<<")
+        print(">>> 本脚本覆盖的检查通过；字面布局与实际终端效果需单独验证。<<<")
     else:
         print(">>> 门禁检验存在未通过项，请排查！<<<")
     print("==========================================")

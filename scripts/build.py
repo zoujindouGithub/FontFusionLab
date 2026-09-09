@@ -153,7 +153,7 @@ def restore_box_drawing_programs(target: TTFont, orig: TTFont) -> int:
     return restored
 
 
-def build_upright(style: str) -> None:
+def build_upright(style: str, cjk_scale: float = 1.05) -> None:
     """端到端构建正体字体（Regular / Bold）"""
     print(f"\n[{style}] === 开始全量构建正体 ===")
     fira_path = os.path.join(SRC_FIRA, f"FiraCodeNerdFontMono-{style}.ttf")
@@ -185,6 +185,7 @@ def build_upright(style: str) -> None:
 
     # 计算缩放比例 (1950 / 1000 = 1.95)
     scale = fira["head"].unitsPerEm / maple_full["head"].unitsPerEm
+    source_center_y = (maple_full["hhea"].ascender + maple_full["hhea"].descender) / 2
     order_set = set(fira.getGlyphOrder())
     gname_to_target = {}
     latin_cell_width = fira_hmtx["A"][0]
@@ -206,20 +207,26 @@ def build_upright(style: str) -> None:
             gname_to_target[gname] = target_name
 
             glyph_copy = copy.deepcopy(maple_full["glyf"][gname])
-            if not glyph_copy.isComposite():
-                coords, _, _ = glyph_copy.getCoordinates(maple_full["glyf"])
-                # 严格四舍五入到整数
-                glyph_copy.coordinates = GlyphCoordinates([(round(x * scale), round(y * scale)) for x, y in coords])
-            else:
-                for comp in glyph_copy.components:
-                    if getattr(comp, "x", None) is not None:
-                        comp.x = round(comp.x * scale)
-                    if getattr(comp, "y", None) is not None:
-                        comp.y = round(comp.y * scale)
+            # 源字体的 UPM 不是字符格宽；按源 advance 居中，保留标点等原有非对称留白。
+            source_advance = maple_full["hmtx"][gname][0]
+            coords, end_points, flags = glyph_copy.getCoordinates(maple_full["glyf"])
+            if glyph_copy.isComposite():
+                # 展开组件后统一变换，避免只移动组件偏移却遗漏组件轮廓的缩放。
+                del glyph_copy.components
+            glyph_copy.numberOfContours = len(end_points)
+            glyph_copy.endPtsOfContours = end_points
+            glyph_copy.flags = flags
+            glyph_copy.coordinates = GlyphCoordinates([
+                (
+                    round(latin_cell_width + (x - source_advance / 2) * scale * cjk_scale),
+                    round((source_center_y + (y - source_center_y) * cjk_scale) * scale),
+                )
+                for x, y in coords
+            ])
 
             fira_glyf[target_name] = glyph_copy
 
-            # 严格根据轮廓真实 xmin 计算 lsb，确保居中，杜绝 lsb=0 靠左贴边
+            # 轮廓已完成居中；同步 LSB，避免渲染器再通过 phantom points 移动轮廓。
             coords, _, _ = glyph_copy.getCoordinates(fira_glyf)
             real_xmin = min((p[0] for p in coords), default=0)
             fira_hmtx[target_name] = (2 * latin_cell_width, round(real_xmin))
