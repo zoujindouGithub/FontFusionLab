@@ -13,6 +13,15 @@ archives/*.zip
 __pycache__/
 *.pyc
 
+# IDE & Tooling
+.semgrep/
+.vscode/
+.idea/
+
 # 渲染对比等临时产物
+# Release 产物
+release/
+*.zip
+
 _tmp/
 *.tmp
