@@ -9,6 +9,7 @@ import build
 
 
 def fixture_font(cp, overlap=False):
+    codepoints = (cp,) if isinstance(cp, int) else tuple(cp)
     pen = TTGlyphPen(None)
     pen.moveTo((100, 100))
     pen.lineTo((800, 100))
@@ -19,7 +20,7 @@ def fixture_font(cp, overlap=False):
         glyph.flags = array.array('B', (flag | 0x40 for flag in glyph.flags))
     fb = FontBuilder(1000, isTTF=True)
     fb.setupGlyphOrder(['.notdef', 'A', 'test'])
-    fb.setupCharacterMap({65: 'A', cp: 'test'})
+    fb.setupCharacterMap({65: 'A', **{codepoint: 'test' for codepoint in codepoints}})
     fb.setupGlyf({'.notdef': TTGlyphPen(None).glyph(), 'A': glyph, 'test': glyph})
     fb.setupHorizontalMetrics({'.notdef': (500, 0), 'A': (500, 100), 'test': (1000, 100)})
     fb.setupHorizontalHeader(ascent=900, descent=-300)
@@ -54,11 +55,23 @@ def test_injection_selection_replaces_existing_cjk_for_distinct_source(tmp_path)
     source = fixture_font(cp)
     base_path = tmp_path / 'base.ttf'
     source_path = tmp_path / 'source.ttf'
-
-    inject_cps = build.injection_codepoints(base, source, base_path, source_path)
+    inject_cps = build.injection_codepoints(base, source, base_path, source_path, replace=True)
     assert inject_cps == {cp}
     build.inject_cjk(base, source, inject_cps, 1.0)
 
     assert base.getBestCmap()[cp].startswith('cjk')
     assert base['hmtx'][base.getBestCmap()[cp]][0] == 2 * base['hmtx']['A'][0]
     assert build.injection_codepoints(base, source, base_path, base_path) == set()
+
+def test_injection_selection_respects_replace_intent_and_same_file_passthrough(tmp_path):
+    base = fixture_font((0x300C, 0x2014))
+    source = fixture_font((0x300C, 0x2014, 0x4E00))
+    base_path = tmp_path / 'base.ttf'
+    source_path = tmp_path / 'source.ttf'
+
+    supplement = build.injection_codepoints(base, source, base_path, source_path, replace=False)
+    replacement = build.injection_codepoints(base, source, base_path, source_path, replace=True)
+    assert 0x300C not in supplement and 0x2014 not in supplement
+    assert 0x4E00 in supplement
+    assert replacement == {0x300C, 0x2014, 0x4E00}
+    assert build.injection_codepoints(base, source, base_path, base_path, replace=True) == set()

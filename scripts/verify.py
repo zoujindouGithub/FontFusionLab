@@ -57,8 +57,30 @@ def main():
             print(f"[FAIL] {sub:11}: ID1='{id1}' ID2='{id2}' ID16='{id16}' ID17='{id17}' (期望 ID1='{family}', ID2='{exp_id2}')")
             all_passed = False
 
-    # 3. CJK 字符度量与 LSB 居中检验
+    # 3. 正体保留 FiraCode 模糊标点：补库注入不得覆盖基底字形或宽度。
+    print("\n--- 检验正体 FiraCode 模糊标点保留 ---")
+    regular_cfg = recipe["styles"]["Regular"]
+    base_regular_path = catalog.source_path(regular_cfg["base"], regular_cfg["source_style"])
+    with TTFont(base_regular_path) as base_regular:
+        base_cmap = base_regular.getBestCmap()
+        target_cmap = fonts["Regular"].getBestCmap()
+        for cp in (0x300C, 0x2014):
+            base_name = base_cmap.get(cp)
+            target_name = target_cmap.get(cp)
+            preserved = (
+                base_name is not None and target_name == base_name
+                and fonts["Regular"]["hmtx"][target_name] == base_regular["hmtx"][base_name]
+                and not target_name.startswith("cjk")
+            )
+            if preserved:
+                print(f"[PASS] U+{cp:04X} 保留基底字形 {target_name}, advance={fonts['Regular']['hmtx'][target_name][0]}")
+            else:
+                print(f"[FAIL] U+{cp:04X} 未保留基底: base={base_name}, target={target_name}")
+                all_passed = False
+
+    # 4. CJK 字符度量与 LSB 居中检验
     print("\n--- 检验 CJK 2:1 Advance 与 LSB 居中 ---")
+
     reg_font = fonts["Regular"]
     reg_cmap = reg_font.getBestCmap()
     hmtx = reg_font["hmtx"]

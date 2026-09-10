@@ -114,10 +114,12 @@ def cjk_codepoints(font: TTFont) -> set[int]:
             selected.add(codepoint)
     return selected
 
-def injection_codepoints(base: TTFont, source: TTFont, base_path, source_path) -> set[int]:
-    """按来源文件身份决定 CJK 注入集；不同来源必须覆盖基底已有 CJK。"""
+def injection_codepoints(base: TTFont, source: TTFont, base_path, source_path, replace: bool = False) -> set[int]:
+    """按构建意图选择 CJK 集；同文件永远 passthrough，斜体异源才全量替换。"""
     source_cps = cjk_codepoints(source)
-    if Path(base_path).resolve() != Path(source_path).resolve():
+    if Path(base_path).resolve() == Path(source_path).resolve():
+        return set()
+    if replace:
         return source_cps
     return source_cps - base.getBestCmap().keys()
 
@@ -262,7 +264,7 @@ def build_upright(style: str, recipe: dict, base_path, source_path, out_path: st
     print(f"\n[{recipe['id']}/{style}] === 开始全量构建正体 ===")
     fira = TTFont(base_path)
     with TTFont(source_path) as source:
-        inject_cps = injection_codepoints(fira, source, base_path, source_path)
+        inject_cps = injection_codepoints(fira, source, base_path, source_path, replace=False)
         print(f"  识别并准备注入 CJK 码位: {len(inject_cps)} 个")
         inject_cjk(fira, source, inject_cps, cjk_scale)
 
@@ -313,7 +315,7 @@ def build_italic(style: str, recipe: dict, base_path, source_path, out_path: str
         font["cmap"].tables.append(subtable)
 
     with TTFont(source_path) as source:
-        inject_cps = injection_codepoints(font, source, base_path, source_path)
+        inject_cps = injection_codepoints(font, source, base_path, source_path, replace=True)
         print(f"  识别并准备替换 CJK 码位: {len(inject_cps)} 个")
         inject_cjk(font, source, inject_cps, cjk_scale)
 
