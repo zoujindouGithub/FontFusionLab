@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "variants": [
+    {
+      "id": "firacode-sarasa",
+      "family": "FiraCode Sarasa Mono",
+      "status": "production",
+      "description": "Fira Code 拉丁字形与连字 · Sarasa 简体中文 · Maple 手写斜体",
+      "styles": {
+        "Regular": "../build/firacode-sarasa/FiraCodeSarasaMono-Regular.ttf",
+        "Bold": "../build/firacode-sarasa/FiraCodeSarasaMono-Bold.ttf",
+        "Italic": "../build/firacode-sarasa/FiraCodeSarasaMono-Italic.ttf",
+        "BoldItalic": "../build/firacode-sarasa/FiraCodeSarasaMono-BoldItalic.ttf"
+      }
+    },
+    {
+      "id": "firacode-maple",
+      "family": "FiraCode Maple Mono",
+      "status": "production",
+      "description": "Fira Code 拉丁字形与连字 · Maple 简体中文 · Maple 手写斜体",
+      "styles": {
+        "Regular": "../build/firacode-maple/FiraCodeMapleMono-Regular.ttf",
+        "Bold": "../build/firacode-maple/FiraCodeMapleMono-Bold.ttf",
+        "Italic": "../build/firacode-maple/FiraCodeMapleMono-Italic.ttf",
+        "BoldItalic": "../build/firacode-maple/FiraCodeMapleMono-BoldItalic.ttf"
+      }
+    }
+  ]
+}

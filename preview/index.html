@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="FontFusionLab 字体融合实验室：在相同文本、字号与连字设置下比较每套 Variant 的四种字重样式。">
+  <title>FontFusionLab / 字体融合实验室</title>
+  <link rel="stylesheet" href="./preview.css">
+  <script type="module" src="./preview.js"></script>
+</head>
+<body data-preview-state="loading">
+  <main class="shell">
+    <header class="masthead">
+      <a class="wordmark" href="./index.html" aria-label="FontFusionLab 首页"><span class="brand-mark" aria-hidden="true">F<span>F</span></span>FontFusionLab</a>
+      <span class="edition">TYPE SPECIMEN <span aria-hidden="true">/</span> 02.00</span>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span class="signal" aria-hidden="true"></span> OPEN TYPE EXPERIMENTS</p>
+        <h1 id="page-title">字体融合<span>实验室<span class="title-dot">.</span></span></h1>
+      </div>
+      <div class="intro-note">
+        <p class="intro-kicker">不同字形，同一把标尺。</p>
+        <p>把代码的秩序与中文的细节放在一起。共享测试文本，逐套观察 Variant 的常规、粗体与斜体。</p>
+        <p class="technical-note">浏览器用于字形比较；终端的连字、框线和对齐，仍需在 Windows Terminal + PowerShell 中实测。</p>
+      </div>
+    </section>
+
+    <section class="workbench" aria-labelledby="controls-title">
+      <header class="section-heading"><h2 id="controls-title"><span>01 /</span> 测试台</h2><span class="section-caption">ONE INPUT · EVERY FACE</span></header>
+      <div class="controls">
+        <div class="text-control">
+          <div class="control-heading"><label for="text">共享测试文本 <span>Sample text</span></label><button id="reset-text" type="button">恢复样本</button></div>
+          <textarea id="text" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="text-hint">abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+0123456789
+! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~
+中文：字体融合实验室，让代码与汉字自然相遇。
+全角：，。！？：；“”‘’（）【】《》〈〉、—… ￥ ＋－＝／＼｜＠＃％＆＊
+连字：=&gt; != === == !== &lt;= &gt;= -&gt; &lt;- &lt;=&gt; &amp;&amp; || ++ --
+┌────────────┬────────────┐
+│ FontFusion │ 字体实验室 │
+├────────────┼────────────┤
+│ ABC 012345 │ 中文与代码 │
+└────────────┴────────────┘
+PS&gt; $PSVersionTable.PSVersion
+PS&gt; Get-ChildItem -File | Where-Object { $_.Length -gt 1MB }
+PS&gt; $fonts = Get-ChildItem '.\build' -Recurse -Filter '*.ttf'
+PS&gt; $fonts | Select-Object Name, Length | Format-Table -AutoSize
+PS&gt; Write-Host "已找到 $($fonts.Count) 个字体文件" -ForegroundColor Green</textarea>
+          <p id="text-hint" class="hint">完整拉丁字母 · ASCII 标点 · 中文 · 连字 · 框线 · PowerShell。编辑仅影响本页，不执行命令、不修改文件。</p>
+        </div>
+        <div class="tuning">
+          <div class="size-control"><label for="size">字号 <span>Size</span></label><output id="size-value" for="size">18 px</output><input id="size" type="range" min="10" max="36" step="1" value="18"><div class="range-limits" aria-hidden="true"><span>10 px</span><span>36 px</span></div></div>
+          <label class="switch" for="ligatures"><span>编程连字<small>Ligatures · liga / calt</small></span><input id="ligatures" type="checkbox" checked><span class="switch-track" aria-hidden="true"></span></label>
+          <p class="hint">字号与连字同步应用到所有样式。每套 Variant 可独立收起。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="specimens" aria-labelledby="variants-title">
+      <header class="section-heading"><h2 id="variants-title"><span>02 /</span> Variant 字形对照</h2><span id="variant-count" class="section-caption">MANIFEST LOADING</span></header>
+      <div class="load-report">
+        <p id="font-status" role="status" aria-live="polite">正在读取 Variant 清单并加载字体…</p>
+        <p class="hint">只展示成功加载的构建字体；加载失败不会用系统字体冒充样本。</p>
+        <ul id="font-errors" class="error-list" aria-label="字体加载错误" hidden></ul>
+      </div>
+      <div id="variants" class="variant-stack" aria-busy="true"></div>
+      <noscript><p class="no-script">此预览需要 JavaScript 读取 variants.json 并显式加载字体。请启用 JavaScript。</p></noscript>
+    </section>
+
+    <footer><span>FontFusionLab <span class="footer-divider">/</span> 字体融合实验室</span><span>LOCAL FONTS. SHARED METRICS. DISTINCT CHARACTER.</span></footer>
+  </main>
+</body>
+</html>
+<!-- FontFusionLab 预览页使用说明：
+     1. 先构建：uv run python scripts/build.py --all
+     2. 从仓库根启动：uv run python -m http.server 8137 --bind 127.0.0.1
+        然后打开 http://127.0.0.1:8137/preview/ （勿用 file:// 或从 preview/ 启动）
+     3. 字体清单由 ./variants.json 驱动（相对 URL ../build/<id>/<prefix>-<Style>.ttf）；
+        新增 Variant 时在清单 variants 数组追加即可，页面自动向下排卡片。
+     4. 本页面仅供字形比较；终端行为以 Windows Terminal + pwsh 人工验收为准，
+        流程见 ../docs/variants.md。 -->
