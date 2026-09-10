@@ -1,150 +1,152 @@
-# FiraCode Maple Mono
+# FontFusionLab / 字体融合实验室
 
-<p align="center">
-  <b>Modern coding ligatures and icons of FiraCode meet warm, elegant CJK glyphs of Maple Mono</b><br>
-  <i>A high-quality hybrid monospaced font tailored for terminals and code editors</i>
-</p>
+[简体中文](./README.md) | [English](./README.en.md)
 
-<p align="center">
-  <a href="./README.md">简体中文</a> | <a href="./README.en.md">English</a>
-</p>
+**A recipe-driven multi-Variant font fusion platform.** JSON recipes combine programming-oriented Latin glyphs, ligatures and Nerd Fonts icons with selected CJK glyphs into monospaced fonts for terminals and code editors. The project identity is **FontFusionLab / 字体融合实验室**; each production Variant installs under its own font family name.
 
-<p align="center">
-  <a href="https://github.com/zoujindouGithub/FiraCodeMapleMono/releases"><img src="https://img.shields.io/github/v/release/zoujindouGithub/FiraCodeMapleMono?include_prereleases&color=brightgreen" alt="Release"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-OFL--1.1-blue.svg" alt="License: OFL-1.1"></a>
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
-</p>
+## Two production Variants
 
----
+| Recipe ID | Installed family | CJK source | Default output directory |
+|---|---|---|---|
+| `firacode-sarasa` (default) | **FiraCode Sarasa Mono** | Sarasa Fixed SC | `build/firacode-sarasa/` |
+| `firacode-maple` | **FiraCode Maple Mono** | Maple Mono CN | `build/firacode-maple/` |
 
-## Overview
+Each provides `Regular`, `Bold`, `Italic` and `BoldItalic`. They are peer production recipes in one project, not separate release branches; their build directories and installed families never overwrite each other.
 
-Many developers love **[Fira Code](https://github.com/tonsky/FiraCode)** for its exquisite programming ligatures and clean character forms. However, when working in multilingual or mixed English-Chinese environments (comments, docs, CLI output logs), system fallback fonts often introduce visual fragmentation and misalignment.
+Style composition:
 
-**FiraCode Maple Mono** uses surgical glyph-level fusion:
-- **Latin, Digits, Ligatures, Nerd Fonts Icons**: 100% preserved from original FiraCode Nerd Font Mono.
-- **CJK Ideographs & Full-width Punctuation**: 100% sourced from [Maple Mono CN](https://github.com/subframe7536/maple-font).
-- **Full RIBBI Coverage**: Provides `Regular`, `Bold`, `Italic`, and `Bold Italic`.
+- **FiraCode Sarasa Mono**: uprights are FiraCode Nerd Font Mono Latin + Sarasa Fixed SC upright CJK; italics keep the handwritten Maple italic skeleton (MapleItalic base) with their CJK replaced by the matching Sarasa Fixed SC style.
+- **FiraCode Maple Mono**: uprights are FiraCode Latin + Maple Mono CN CJK; italics keep the MapleItalic base entirely (its CJK are the source's own outlines), equivalent to the legacy merged-v4 pipeline.
+- Injected glyph advances always equal two Latin cells of the current style; this is not a guarantee of seamless rendering or absence of fallback in every application, size or display.
 
----
+See the [Variant guide](./docs/variants.md) for style boundaries and manual acceptance, and the [design notes](./docs/design-notes.md) for the source/recipe model, OTS compatibility and hinting decisions.
 
-## Key Features
+## Quick start
 
-### 1. Strict 2:1 Monospaced Grid Alignment
-Each full-width CJK character occupies exactly 2 standard Latin cells (2400 design units). CLI tables, TUI interfaces (e.g. `lazygit`, `htop`), and box-drawing lines remain perfectly aligned without jitter or horizontal drift at any font size.
-
-### 2. Source-Cell Centering & 5% Visual Scaling
-- **Source-Cell Centering**: Horizontal shift is calculated based on Maple Mono's native cell advance (1200), eliminating left-edge clipping while faithfully preserving the native layout whitespace for punctuation (commas, periods, quotes).
-- **5% Uniform CJK Scaling**: Injected CJK glyphs are uniformly scaled up by 5% around their bounding box center, effectively tightening character spacing and providing a more solid, balanced visual weight alongside Latin letters.
-
-### 3. Selective Hinting Architecture
-- **Zero Latin Degradation**: Preserves original FiraCode TrueType hinting bytecode verbatim; rendering remains sharp and undistorted at small sizes.
-- **CJK Hinting Rebuilt**: Automatically generates hinting instructions for all 21,266 CJK glyphs via `ttfautohint`, ensuring stroke clarity under Windows ClearType and standard 1080P screens.
-- **Seamless Box-Drawing**: Restores 160 box-drawing glyphs (U+2500–U+259F) byte-for-byte to match FiraCode, guaranteeing consistent grayscale and continuous border lines in terminal TUIs.
-
-### 4. Consistent Vertical Metrics & Standard RIBBI
-- Aligns vertical metric ratios (`hhea.ascender` ratio = 0.923) between upright and italic styles, eliminating baseline jumping when mixing styles.
-- Fully conforms to OpenType RIBBI naming conventions, ensuring proper grouping across editors and operating systems.
-
----
-
-## Download & Installation
-
-### Option A: Direct Download (Recommended)
-
-1. Go to the **[Releases](https://github.com/zoujindouGithub/FiraCodeMapleMono/releases)** page and download `FiraCodeMapleMono-v1.0.zip`.
-2. Extract the archive to get four `.ttf` files:
-   - `FiraCodeMapleMono-Regular.ttf`
-   - `FiraCodeMapleMono-Bold.ttf`
-   - `FiraCodeMapleMono-Italic.ttf`
-   - `FiraCodeMapleMono-BoldItalic.ttf`
-3. **Install on your system**:
-   - **Windows**: Select all 4 files -> Right click -> Click "Install" or "Install for all users".
-   - **macOS**: Double-click each font file -> Click "Install Font".
-   - **Linux**: Copy files to `~/.local/share/fonts/` and run `fc-cache -f -v`.
-
-### Option B: Windows One-Click Script
-
-If you are on Windows and want to avoid file-lock errors while your editor/terminal is running:
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/). All commands run from the repository root:
 
 ```powershell
-# Run from the repository or extracted root
-powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+# 1. Install pinned dependencies (fontTools, FreeType, ttfautohint bindings, jsonschema, pytest)
+uv sync
+
+# 2. Build every production Variant (isolated under build/<recipe-id>/)
+uv run python scripts/build.py --all
+
+# 3. Run the quality gate per Variant (naming/metrics/box-byte/FreeType render/OT flags)
+uv run python scripts/verify.py --recipe firacode-sarasa
+uv run python scripts/verify.py --recipe firacode-maple
+
+# 4. Install (dry-run first; registry family names come from the recipe)
+pwsh -File scripts/install.ps1 -Variant firacode-sarasa -WhatIf
+pwsh -File scripts/install.ps1 -Variant firacode-sarasa
+# Optional: -ConfigureEditors also syncs IDE font settings (user config untouched by default)
+
+# 5. Browser preview (serve from the repository root, never file://)
+uv run python -m http.server 8137 --bind 127.0.0.1
+# Open http://127.0.0.1:8137/preview/
 ```
-The script handles slot-based hot swapping, registers font resources with GDI, broadcasts `WM_FONTCHANGE`, and syncs configurations for VSCode, Cursor, and other IDEs.
 
----
+`build.py` without arguments uses the explicit default recipe `firacode-sarasa`; `--recipe <ID or JSON path>` builds one Variant. `install.ps1` accepts `-Variant <ID>` or `-Recipe <ID or JSON path>` (never both) plus `-OutputRoot`.
 
-## Editor & Terminal Configuration
+## Release model: one Release, separate ZIPs
 
-After installation, the font family name is recognized as:
-```text
-FiraCode Maple Mono
+**v2.0.0 is one unified GitHub Release** on the [Releases page](https://github.com/zoujindouGithub/FiraCodeMapleMono/releases), containing one independent ZIP asset per Variant — not separate Releases per Variant:
+
+- `FiraCodeSarasaMono-v2.0.0.zip`
+- `FiraCodeMapleMono-v2.0.0.zip`
+- `variants.json` (Variant identification and SHA256 of every font and archive) and `SHA256SUMS.txt`
+
+Each ZIP contains that Variant's four TTFs (`<file_prefix>-<Style>.ttf`), `LICENSE`, a Variant `README.md` and `recipe.json` provenance.
+
+**Generated TTFs/ZIPs never enter Git**: `build/`, `release/` and font binaries are gitignored and distributed only through Releases; building from source reproduces the same recipe-driven pipeline and checksum workflow.
+
+Installation: Windows — select the four TTFs and install (or use `install.ps1` above); macOS — Font Book; Linux — copy to `~/.local/share/fonts/` then `fc-cache -f -v`. Restart applications that use the font afterwards.
+
+## Sources and recipes
+
+- `sources/manifest.json` registers the four existing sources: `firacode`, `maple-cn`, `maple-italic`, `sarasa-sc` (12 TTFs, each with SHA256). This project adds no new source fonts.
+- Public sources support two registrations: **Git-managed** repository-relative `path`, or **URL + SHA256** (downloaded into `.cache/sources/`, hash-verified, cache file named by hash).
+- `recipes/*.json` define family name, file prefix, CJK source and scale, and per-style `base`/`cjk_source`/`autohint`; `recipes/schema.json` is strict (unknown fields rejected). `production` recipes participate in `--all` and release packaging; `experimental` recipes may be committed publicly and built explicitly via `--recipe`.
+- Private source locations belong only in the uncommitted `sources/local.json` (template: `sources/local.example.json`, already gitignored). A `production` recipe is refused unless every referenced source/style is in the public manifest; experimental recipes may reference private source IDs but only build on machines that configured them. Never publish private fonts, host-specific absolute paths or download credentials.
+
+Fields and extension rules: [design notes, Source/Recipe model](./docs/design-notes.md#sourcerecipe-模型).
+
+## Adding a new Variant
+
+1. Copy `recipes/firacode-maple.json` to `recipes/<new-id>.json`; adjust `id`, `family`, `file_prefix`, `cjk.source/scale` and per-style `base`/`cjk_source`/`autohint`. Start with `"status": "experimental"`.
+2. Register new public sources in `sources/manifest.json` (Git `path` or `url`+`sha256`); keep private sources in your local `sources/local.json`, never committed.
+3. Every tool works with `--recipe`/`--variant` directly, no code changes:
+
+```powershell
+uv run python scripts/build.py --recipe <new-id>
+uv run python scripts/verify.py --recipe <new-id>
+uv run python scripts/check-cjk-layout.py --recipe <new-id>
+pwsh -File scripts/install.ps1 -Recipe <new-id> -WhatIf
+uv run python scripts/package-release.py   # packages all production Variants together
 ```
 
-### Windows Terminal
-In `settings.json`:
+Gate checklist before promoting to `production` (all required):
+
+- [ ] `uv run pytest -q` green
+- [ ] `build.py --recipe <id>` builds all four faces (and `--all` stays green)
+- [ ] `verify.py --recipe <id>` fully PASS, including the OVERLAP_SIMPLE OTS gate
+- [ ] `check-cjk-layout.py --recipe <id>` PASS (centering/scale/LSB/2:1)
+- [ ] `package-release.py` deterministic (identical bytes for identical input); `SHA256SUMS.txt` reproducible
+- [ ] Real browser loads every face; manual Windows Terminal + pwsh acceptance passes
+
+## Layout and quality checks
+
+```powershell
+uv run python scripts/check-cjk-layout.py --recipe firacode-sarasa
+uv run python scripts/check-cjk-layout.py --recipe firacode-maple
+uv run python scripts/audit-sources.py --recipe firacode-sarasa   # per-codepoint attribution
+uv run python scripts/package-release.py                          # default release/v2.0.0/
+```
+
+Automated checks cover machine-checkable font properties (structure, naming, advances, layout, OT flags). They **do not prove** installation, actual Windows Terminal family selection, ligature shaping or visual quality on a particular display.
+
+## Browser preview
+
+The page lives in `preview/` and is driven by `preview/variants.json`: Variants stack top-to-bottom with independent visibility toggles, shared adjustable size and ligature switches, and editable sample text (defaults cover 26 upper/lowercase letters, 10 digits, every visible ASCII punctuation, Chinese, fullwidth punctuation, `=> != ===` ligatures, Box-Drawing and PowerShell examples). Font URLs are relative (e.g. `../build/firacode-sarasa/FiraCodeSarasaMono-Regular.ttf`) — no host paths; load failures surface explicitly and never masquerade as system-font samples.
+
+```powershell
+uv run python -m http.server 8137 --bind 127.0.0.1
+```
+
+Open <http://127.0.0.1:8137/preview/>. Build the Variants first; the browser loads build output without system installation, which cannot replace manual terminal acceptance.
+
+## Editor and terminal configuration
+
+Set Windows Terminal's `font.face` to `FiraCode Sarasa Mono` or `FiraCode Maple Mono`:
+
 ```json
 {
   "profiles": {
     "defaults": {
-      "font": {
-        "face": "FiraCode Maple Mono",
-        "size": 12.0
-      }
+      "font": { "face": "FiraCode Sarasa Mono", "size": 12 }
     }
   }
 }
 ```
 
-### VSCode / Cursor / Other IDEs
-In `settings.json`:
+For VS Code / Cursor:
+
 ```json
 {
-  "editor.fontFamily": "'FiraCode Maple Mono', Consolas, monospace",
-  "terminal.integrated.fontFamily": "FiraCode Maple Mono",
+  "editor.fontFamily": "'FiraCode Sarasa Mono', Consolas, monospace",
+  "terminal.integrated.fontFamily": "FiraCode Sarasa Mono",
   "editor.fontLigatures": true
 }
 ```
 
----
+Replace the family with `FiraCode Maple Mono` for the Maple Variant. Follow the [manual acceptance procedure](./docs/variants.md#人工验收-windows-terminal-pwsh) for **both families**, covering all four styles, ligatures, mixed Latin/CJK text and box drawing.
 
-## Building from Source
+## Upstream credits and licensing
 
-This project provides a fully reproducible and self-contained build pipeline.
+- [Fira Code](https://github.com/tonsky/FiraCode), Nikita Prokopov and project authors, OFL-1.1.
+- [Maple Mono](https://github.com/subframe7536/maple-font), subframe7536 and project authors, OFL-1.1; supplies Maple CJK and the italic bases for both Variants.
+- [Sarasa Gothic](https://github.com/be5invis/Sarasa-Gothic), Renzhi Li (Belleve Invis), OFL-1.1; supplies Sarasa Fixed SC, with portions attributed to the Inter Project, Adobe (Reserved Font Name `Source`) and Google. The upstream notice is merged into [LICENSE](./LICENSE), and `SarasaFixedSC-src/LICENSE` is preserved.
+- [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts), Ryan Gosse and contributors; project tools MIT, source fonts and icons retain their own licenses.
+- [Fusion-JetBrainsMapleMono](https://github.com/SpaceTimee/Fusion-JetBrainsMapleMono), SpaceTimee, fusion design inspiration.
 
-### Prerequisites
-- Python 3.10+
-- Required libraries:
-  ```bash
-  pip install fonttools ttfautohint-py freetype-py Pillow
-  ```
-
-### Build Steps
-```bash
-# 1. Clone the repository
-git clone https://github.com/zoujindouGithub/FiraCodeMapleMono.git
-cd FiraCodeMapleMono
-
-# 2. Run the build script (generates 4 fonts into merged-v4/)
-python scripts/build.py
-
-# 3. Run automated verification and layout checks
-python scripts/check-cjk-layout.py merged-v4
-python scripts/verify.py
-```
-
----
-
-## Upstream Credits & Acknowledgements
-
-This font is a derivative work based on the following outstanding open-source projects:
-
-- **[Fira Code](https://github.com/tonsky/FiraCode)** by Nikita Prokopov (OFL-1.1)
-- **[Maple Mono](https://github.com/subframe7536/maple-font)** by subframe7536 (OFL-1.1)
-- **[Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)** by Ryan Gosse (MIT)
-- **[Fusion-JetBrainsMapleMono](https://github.com/SpaceTimee/Fusion-JetBrainsMapleMono)** by SpaceTimee for structural inspiration
-
-## License
-
-This Font Software and accompanying scripts are licensed under the **[SIL Open Font License, Version 1.1](./LICENSE)**. Anyone is free to use, study, modify, and redistribute this font software.
+This Font Software is distributed under the [SIL Open Font License 1.1](./LICENSE). Preserve the license and every upstream attribution when redistributing; derivative fonts must not use reserved font names.
