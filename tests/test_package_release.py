@@ -108,3 +108,19 @@ def test_private_production_recipe_rejected_before_release_is_created(project):
     assert result.returncode != 0
     assert "private-cjk" in result.stdout + result.stderr
     assert not (project / "release/v2.0.0").exists()
+
+
+def test_zip_members_carry_fixed_timestamps(project):
+    assert package(project).returncode == 0
+    with zipfile.ZipFile(project / "release" / "v2.0.0" / "FiraCodeMapleMono-v2.0.0.zip") as packed:
+        for info in packed.infolist():
+            assert info.date_time == (1980, 1, 1, 0, 0, 0), f"{info.filename}: {info.date_time}"
+
+
+def test_back_to_back_packages_are_byte_identical(project, monkeypatch):
+    first = package(project, "release/det1")
+    assert first.returncode == 0, first.stdout + first.stderr
+    second = package(project, "release/det2")
+    assert second.returncode == 0, second.stdout + second.stderr
+    for name in ("FiraCodeMapleMono-v2.0.0.zip", "FiraCodeSarasaMono-v2.0.0.zip"):
+        assert (project / "release/det1" / name).read_bytes() == (project / "release/det2" / name).read_bytes()

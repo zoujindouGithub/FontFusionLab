@@ -52,7 +52,17 @@ def main():
     plan_data = plan(output_root, release_dir)
 
     import zipfile
+
+    def add_member(zf, name, data):
+        # 固定 date_time 常量以实现字节级可重现 ZIP: writestr 默认嵌入当前时间,
+        # 背靠背两次打包会得到不同哈希; (1980,1,1,0,0,0) 是 ZIP 规范允许的最早
+        # 时间戳, 与成员内容无关, 仅作归一化。
+        info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zf.compression
+        zf.writestr(info, data)
+
     release_dir.mkdir(parents=True, exist_ok=True)
+
     entries = []
     for recipe, fonts in plan_data:
         archive_path = release_dir / f"{recipe['file_prefix']}-v{VERSION}.zip"
@@ -65,11 +75,11 @@ def main():
         with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
             for style in STYLES:
                 path = fonts[style]
-                zf.write(path, path.name)
+                add_member(zf, path.name, path.read_bytes())
                 entry['fonts'][style] = {'file': path.name, 'sha256': catalog.sha256(path)}
-            zf.writestr('LICENSE', (ROOT / 'LICENSE').read_text(encoding='utf-8'))
-            zf.writestr('README.md', write_variant_readme(recipe))
-            zf.writestr('recipe.json', json.dumps(recipe, ensure_ascii=False, indent=2) + '\n')
+            add_member(zf, 'LICENSE', (ROOT / 'LICENSE').read_bytes())
+            add_member(zf, 'README.md', write_variant_readme(recipe).encode('utf-8'))
+            add_member(zf, 'recipe.json', json.dumps(recipe, ensure_ascii=False, indent=2).encode('utf-8') + b'\n')
         entry['sha256'] = catalog.sha256(archive_path)
         entries.append(entry)
         print(f"[OK] {recipe['family']}: {archive_path.name} ({archive_path.stat().st_size // 1024} KB)")
