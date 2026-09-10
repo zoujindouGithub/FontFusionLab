@@ -1,57 +1,65 @@
-"""
-FiraCode Maple Mono 质量门禁与终验套件 (Automated Verification Suite)
-"""
+"""按 recipe 解析产物与源字体的质量门禁与终验套件"""
+import argparse
+from pathlib import Path
 
-import os
-import sys
-from fontTools.ttLib import TTFont
 import freetype
+from fontTools.ttLib import TTFont
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-OUT_DIR = os.path.join(PROJECT_ROOT, "merged-v4")
-SRC_FIRA = os.path.join(PROJECT_ROOT, "FiraCode-src")
+import catalog
+
 
 def main():
+    parser = argparse.ArgumentParser(description="FontFusionLab variant quality gate")
+    parser.add_argument('--recipe', '--variant', default=catalog.DEFAULT_RECIPE,
+                        help=f'Recipe ID or JSON path (default: {catalog.DEFAULT_RECIPE})')
+    parser.add_argument('--output-root', type=Path, default=catalog.ROOT / 'build')
+    args = parser.parse_args()
+
+    recipe = catalog.load_recipe(args.recipe)
+    paths = catalog.font_paths(recipe, args.output_root)
+    family = recipe['family']
+    prefix = recipe['file_prefix']
     print("==========================================")
-    print("开始 FiraCode Maple Mono 终验门禁审计")
+    print(f"开始 {family} 终验门禁审计")
     print("==========================================")
     all_passed = True
 
     # 1. 四字面文件存在性
     subfamilies = ["Regular", "Bold", "Italic", "BoldItalic"]
     for sub in subfamilies:
-        p = os.path.join(OUT_DIR, f"FiraCodeMapleMono-{sub}.ttf")
-        if not os.path.exists(p):
+        p = paths[sub]
+        if not p.exists():
             print(f"[FAIL] 缺少产物文件: {p}")
             return False
-        print(f"[PASS] 产物存在: FiraCodeMapleMono-{sub}.ttf ({os.path.getsize(p) // 1024} KB)")
+        print(f"[PASS] 产物存在: {p.name} ({p.stat().st_size // 1024} KB)")
 
     # 2. RIBBI 命名规范检验
     print("\n--- 检验 RIBBI 与元数据命名 ---")
     expected_naming = {
-        "Regular": ("FiraCode Maple Mono", "Regular"),
-        "Bold": ("FiraCode Maple Mono", "Bold"),
-        "Italic": ("FiraCode Maple Mono", "Italic"),
-        "BoldItalic": ("FiraCode Maple Mono", "Bold Italic"),
+        "Regular": ("Regular",),
+        "Bold": ("Bold",),
+        "Italic": ("Italic",),
+        "BoldItalic": ("Bold Italic",),
     }
-    for sub, (exp_id1, exp_id2) in expected_naming.items():
-        font = TTFont(os.path.join(OUT_DIR, f"FiraCodeMapleMono-{sub}.ttf"))
+    fonts = {}
+    for sub, (exp_id2,) in expected_naming.items():
+        font = TTFont(paths[sub])
+        fonts[sub] = font
         id1 = font["name"].getDebugName(1)
         id2 = font["name"].getDebugName(2)
         id16 = font["name"].getDebugName(16)
         id17 = font["name"].getDebugName(17)
 
-        is_valid = (id1 == exp_id1 and id2 == exp_id2 and id16 == "FiraCode Maple Mono" and id17 == exp_id2)
+        is_valid = (id1 == family and id2 == exp_id2 and id16 == family and id17 == exp_id2)
         if is_valid:
             print(f"[PASS] {sub:11}: ID1='{id1}' ID2='{id2}' ID16='{id16}' ID17='{id17}'")
         else:
-            print(f"[FAIL] {sub:11}: ID1='{id1}' ID2='{id2}' ID16='{id16}' ID17='{id17}' (期望 ID1='{exp_id1}', ID2='{exp_id2}')")
+            print(f"[FAIL] {sub:11}: ID1='{id1}' ID2='{id2}' ID16='{id16}' ID17='{id17}' (期望 ID1='{family}', ID2='{exp_id2}')")
             all_passed = False
 
     # 3. CJK 字符度量与 LSB 居中检验
     print("\n--- 检验 CJK 2:1 Advance 与 LSB 居中 ---")
-    reg_font = TTFont(os.path.join(OUT_DIR, "FiraCodeMapleMono-Regular.ttf"))
+    reg_font = fonts["Regular"]
     reg_cmap = reg_font.getBestCmap()
     hmtx = reg_font["hmtx"]
     cell = hmtx["A"][0]
@@ -62,7 +70,6 @@ def main():
         all_passed = False
     else:
         advance, lsb = hmtx[zh_glyph]
-        # 轮廓真实 xmin
         coords, _, _ = reg_font["glyf"][zh_glyph].getCoordinates(reg_font["glyf"])
         real_xmin = min((p[0] for p in coords), default=0)
 
@@ -70,14 +77,15 @@ def main():
         lsb_ok = (lsb == round(real_xmin))
 
         if adv_ok and lsb_ok:
-            print(f"[PASS] '中' advance={advance} (2.0x cell), lsb={lsb} 与轮廓 xmin 一致；居中由 check-cjk-layout.py 检查")
+            print(f"[PASS] '中' advance={advance} (2.0x cell), lsb={lsb} 与轮廓 xmin 一致")
         else:
             print(f"[FAIL] '中' advance={advance} (期望 {2*cell}), lsb={lsb} (真实 xmin={real_xmin})")
             all_passed = False
 
-    # 4. Box-Drawing 逐字节还原检验
+    # 4. Box-Drawing 逐字节还原检验 (仅 FiraCode base 的正体)
     print("\n--- 检验 Box-Drawing (U+2500-U+259F) 原版程序逐字节还原 ---")
-    orig_reg = TTFont(os.path.join(SRC_FIRA, "FiraCodeNerdFontMono-Regular.ttf"))
+    fira_reg_path = catalog.source_path('firacode', 'Regular')
+    orig_reg = TTFont(fira_reg_path)
     orig_cmap = orig_reg.getBestCmap()
     bd_same = 0
     bd_diff = 0
@@ -106,7 +114,7 @@ def main():
 
     # 5. 斜体垂直度量与子表完整性
     print("\n--- 检验斜体垂直度量比例与 CMap 子表 ---")
-    it_font = TTFont(os.path.join(OUT_DIR, "FiraCodeMapleMono-Italic.ttf"))
+    it_font = fonts["Italic"]
     it_upem = it_font["head"].unitsPerEm
     it_ratio = it_font["hhea"].ascender / it_upem
     reg_ratio = reg_font["hhea"].ascender / reg_font["head"].unitsPerEm
@@ -129,7 +137,7 @@ def main():
     # 6. FreeType 实际渲染像素级一致性
     print("\n--- FreeType 实际渲染位图对比 ---")
     def render_glyph(path, cp, px):
-        face = freetype.Face(path)
+        face = freetype.Face(str(path))
         face.set_char_size(px << 6)
         face.load_char(chr(cp), freetype.FT_LOAD_RENDER)
         g = face.glyph
@@ -141,8 +149,8 @@ def main():
     test_chars = [0x41, 0x61, 0x30, 0x2500, 0x2502, 0x251C, 0x253C]
     for cp in test_chars:
         for px in (16, 12):
-            r_orig = render_glyph(os.path.join(SRC_FIRA, "FiraCodeNerdFontMono-Regular.ttf"), cp, px)
-            r_merged = render_glyph(os.path.join(OUT_DIR, "FiraCodeMapleMono-Regular.ttf"), cp, px)
+            r_orig = render_glyph(fira_reg_path, cp, px)
+            r_merged = render_glyph(paths["Regular"], cp, px)
             if r_orig == r_merged:
                 render_same += 1
             else:
@@ -154,15 +162,38 @@ def main():
         print(f"[FAIL] 渲染存在像素差异: SAME={render_same}, DIFF={render_diff}")
         all_passed = False
 
+    # 7. OTS/Chrome 兼容: simple glyf flags 不含 OVERLAP_SIMPLE (0x40)
+    print("\n--- OTS 兼容性: simple glyph OVERLAP_SIMPLE 标志清零 ---")
+    overlap_leaks = []
+    for sub in subfamilies:
+        font = fonts[sub]
+        glyf = font["glyf"]
+        for name in glyf.keys():
+            glyph = glyf[name]
+            if glyph.isComposite():
+                continue
+            if glyph.numberOfContours == 0:
+                continue
+            if any(flag & 0x40 for flag in glyph.flags):
+                overlap_leaks.append((sub, name))
+                break
+
+    if not overlap_leaks:
+        print("[PASS] 四字面全部 simple 字形 flags 均不含 OVERLAP_SIMPLE (0x40)")
+    else:
+        sample = ", ".join(f"{sub}:{name}" for sub, name in overlap_leaks[:5])
+        print(f"[FAIL] 存在带 OVERLAP_SIMPLE 的字形 ({len(overlap_leaks)}+): {sample}")
+        all_passed = False
 
     print("\n==========================================")
     if all_passed:
-        print(">>> 本脚本覆盖的检查通过；字面布局与实际终端效果需单独验证。<<<")
+        print(f">>> {family} 本脚本覆盖的检查全部通过。<<<")
     else:
         print(">>> 门禁检验存在未通过项，请排查！<<<")
     print("==========================================")
     return all_passed
 
+
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    import sys
+    sys.exit(0 if main() else 1)

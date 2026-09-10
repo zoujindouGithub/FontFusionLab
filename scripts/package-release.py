@@ -1,39 +1,90 @@
-import hashlib
-import os
-import zipfile
+import json
+import sys
+from pathlib import Path
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MERGED = os.path.join(ROOT, "merged-v4")
-RELEASE_DIR = os.path.join(ROOT, "release")
-ZIP_NAME = "FiraCodeMapleMono-v1.0.zip"
-ZIP_PATH = os.path.join(RELEASE_DIR, ZIP_NAME)
+import catalog
 
-os.makedirs(RELEASE_DIR, exist_ok=True)
+ROOT = Path(__file__).resolve().parent.parent
+STYLES = ('Regular', 'Bold', 'Italic', 'BoldItalic')
+VERSION = '2.0.0'
 
-files_to_pack = [
-    (os.path.join(MERGED, "FiraCodeMapleMono-Regular.ttf"), "FiraCodeMapleMono-Regular.ttf"),
-    (os.path.join(MERGED, "FiraCodeMapleMono-Bold.ttf"), "FiraCodeMapleMono-Bold.ttf"),
-    (os.path.join(MERGED, "FiraCodeMapleMono-Italic.ttf"), "FiraCodeMapleMono-Italic.ttf"),
-    (os.path.join(MERGED, "FiraCodeMapleMono-BoldItalic.ttf"), "FiraCodeMapleMono-BoldItalic.ttf"),
-    (os.path.join(ROOT, "LICENSE"), "LICENSE"),
-    (os.path.join(ROOT, "README.md"), "README.md"),
-    (os.path.join(ROOT, "README.en.md"), "README.en.md"),
-]
 
-print("打包 Release zip...")
-with zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-    for src, arc in files_to_pack:
-        if not os.path.exists(src):
-            raise FileNotFoundError(f"Missing required file: {src}")
-        zf.write(src, arc)
-        size_mb = os.path.getsize(src) / (1024 * 1024)
-        print(f"  + {arc} ({size_mb:.2f} MB)")
+def plan(output_root, release_dir):
+    """解析全部 production variant 与输出路径；失败时绝不写出。"""
+    recipes = catalog.production_recipes()
+    plan = []
+    for recipe in recipes:
+        fonts = {style: path for style, path in catalog.font_paths(recipe, output_root).items()}
+        for style, path in fonts.items():
+            if not path.is_file():
+                raise FileNotFoundError(f"Missing required font: {path}")
+        plan.append((recipe, fonts))
+    return plan
 
-zip_size_mb = os.path.getsize(ZIP_PATH) / (1024 * 1024)
-h = hashlib.sha256(open(ZIP_PATH, "rb").read()).hexdigest()
 
-print(f"\n[OK] Release 包创建成功: {ZIP_PATH} ({zip_size_mb:.2f} MB)")
-print(f"SHA-256: {h}")
+def write_variant_readme(recipe):
+    lines = [
+        f"# {recipe['family']}",
+        '',
+        f"FontFusionLab 字体融合实验室 variant `{recipe['id']}`。",
+        '',
+        '| 字面 | 文件 |',
+        '|---|---|',
+        *[f"| {style} | {catalog.font_paths(recipe)[style].name} |" for style in STYLES],
+        '',
+        '字体以 SIL Open Font License 1.1 授权，详见 LICENSE。',
+        'CJK 字形来源与其授权见 sources/manifest.json 与 recipe.json。',
+    ]
+    return '\n'.join(lines) + '\n'
 
-with open(os.path.join(RELEASE_DIR, "SHA256SUMS.txt"), "w") as f:
-    f.write(f"{h}  {ZIP_NAME}\n")
+
+def main():
+    output_root = ROOT / 'build'
+    release_dir = ROOT / 'release'
+    argv = sys.argv[1:]
+    if '--output-root' in argv:
+        output_root = Path(argv[argv.index('--output-root') + 1])
+    if '--release-dir' in argv:
+        release_dir = Path(argv[argv.index('--release-dir') + 1])
+    elif '--release' in argv:
+        release_dir = Path(argv[argv.index('--release') + 1])
+
+    plan_data = plan(output_root, release_dir)
+
+    import zipfile
+    release_dir.mkdir(parents=True, exist_ok=True)
+    entries = []
+    for recipe, fonts in plan_data:
+        archive_path = release_dir / f"{recipe['file_prefix']}-v{VERSION}.zip"
+        entry = {
+            'id': recipe['id'],
+            'family': recipe['family'],
+            'archive': archive_path.name,
+            'fonts': {},
+        }
+        with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+            for style in STYLES:
+                path = fonts[style]
+                zf.write(path, path.name)
+                entry['fonts'][style] = {'file': path.name, 'sha256': catalog.sha256(path)}
+            zf.writestr('LICENSE', (ROOT / 'LICENSE').read_text(encoding='utf-8'))
+            zf.writestr('README.md', write_variant_readme(recipe))
+            zf.writestr('recipe.json', json.dumps(recipe, ensure_ascii=False, indent=2) + '\n')
+        entry['sha256'] = catalog.sha256(archive_path)
+        entries.append(entry)
+        print(f"[OK] {recipe['family']}: {archive_path.name} ({archive_path.stat().st_size // 1024} KB)")
+
+    import hashlib
+    manifest = {'version': VERSION, 'variants': entries}
+    manifest_path = release_dir / 'variants.json'
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+    sums_path = release_dir / 'SHA256SUMS.txt'
+    lines = [f"{entry['sha256']}  {entry['archive']}" for entry in entries]
+    lines.append(f"{catalog.sha256(manifest_path)}  variants.json")
+    sums_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    print(f"[OK] Release 清单与校验完成: {release_dir}")
+
+
+if __name__ == '__main__':
+    main()
