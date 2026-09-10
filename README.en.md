@@ -51,7 +51,7 @@ uv run python -m http.server 8137 --bind 127.0.0.1
 
 ## Release model: one Release, separate ZIPs
 
-**v2.0.0 is one unified GitHub Release** on the [Releases page](https://github.com/zoujindouGithub/FiraCodeMapleMono/releases), containing one independent ZIP asset per Variant — not separate Releases per Variant:
+**v2.0.0 is one unified GitHub Release** on the [Releases page](https://github.com/zoujindouGithub/FontFusionLab/releases), containing one independent ZIP asset per Variant — not separate Releases per Variant:
 
 - `FiraCodeSarasaMono-v2.0.0.zip`
 - `FiraCodeMapleMono-v2.0.0.zip`

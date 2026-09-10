@@ -51,7 +51,7 @@ uv run python -m http.server 8137 --bind 127.0.0.1
 
 ## 发布模型：一个 Release，多个 ZIP
 
-**v2.0.0 是一个统一 GitHub Release**，在 [Releases](https://github.com/zoujindouGithub/FiraCodeMapleMono/releases) 中包含每个 Variant 的独立 ZIP 资产，而不是每个 Variant 单独建 Release：
+**v2.0.0 是一个统一 GitHub Release**，在 [Releases](https://github.com/zoujindouGithub/FontFusionLab/releases) 中包含每个 Variant 的独立 ZIP 资产，而不是每个 Variant 单独建 Release：
 
 - `FiraCodeSarasaMono-v2.0.0.zip`
 - `FiraCodeMapleMono-v2.0.0.zip`
