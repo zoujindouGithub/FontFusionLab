@@ -8,6 +8,10 @@ param(
     [switch]$ConfigureEditors
 )
 
+
+if ($PSBoundParameters.ContainsKey('Variant') -and $PSBoundParameters.ContainsKey('Recipe')) {
+    throw '-Variant 与 -Recipe 不能同时指定，请二选一。'
+}
 $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
@@ -28,12 +32,11 @@ $BuildRoot = if ($OutputRoot) { $OutputRoot } else { Join-Path $ProjectRoot 'bui
 $FontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
 $RegPath = 'HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
 
-Write-Output "=========================================="
-Write-Output "安装 $($Family) 到当前用户字体库"
+# 跨语言耦合风险过高，以下四项必须与 recipes/schema.json 的 styles 四键同步。
+$subfamilies = @('Regular', 'Bold', 'Italic', 'BoldItalic')
 Write-Output "=========================================="
 
 # 预检: 所有字体文件必须存在, 缺失在任何变更前失败。
-$subfamilies = @('Regular', 'Bold', 'Italic', 'BoldItalic')
 $missing = @()
 foreach ($sub in $subfamilies) {
     $srcFile = Join-Path $BuildRoot "$($recipeInfo.id)\$Prefix-$sub.ttf"
@@ -46,12 +49,10 @@ if ($missing.Count -gt 0) {
 
 # 旧版本槽位残留清理。为什么必须做：旧产线把同 family 的 TTF 注册成文件名词形
 # (如 'FiraCodeMapleMono-Regular (TrueType)' -> FiraCodeMapleMono-Regular-vNN.ttf)。
-# GDI 对同一 family 多文件去重选字时, 这些残留会遮蔽本产线新注册的字形
-# (实测: 新装 Maple CJK 被旧 Sarasa 时代 -v42 文件顶掉)。因此升级安装必须与新装
-# 同批清理, 保证"单一幂等入口"。识别: 文件名匹配 FiraCode(Maple|Sarasa)Mono-*-vNN.ttf
-# 且位于用户字体目录; 只删这些带版本槽的文件及其文件名词形登记项,
+# GDI 对同一 family 多文件去重选字时, 这些残留会遮蔽本产线新注册的字形；
+# 只清理当前 recipe 前缀，避免安装一个 Variant 误删另一家族残留。
 # 本脚本自用的标准/槽位登记项 (family 词形) 不受影响。
-$stalePattern = '^FiraCode(Maple|Sarasa)Mono-.*-v\d+\.ttf$'
+$stalePattern = '^' + [regex]::Escape($Prefix) + '-.*-v\d+\.ttf$'
 $staleFiles = @()
 if (Test-Path -LiteralPath $FontDir) {
     $staleFiles = @(Get-ChildItem -LiteralPath $FontDir -Filter '*.ttf' -File -ErrorAction SilentlyContinue |
@@ -65,9 +66,9 @@ $stale = foreach ($f in $staleFiles) {
             $_.Name -like '* (TrueType)' -and (([string]$_.Value | Split-Path -Leaf) -eq $f.Name)
         })
     }
-    # 只要存在任一"非文件名词形"登记项(本产线 family 词形合法注册)指向该文件,
-    # 它就是活槽位, 绝不能删; 只有孤儿文件或纯旧词形登记的文件才是残留。
-    $live = @($referencing | Where-Object { $_.Name -notmatch '^FiraCode(Maple|Sarasa)Mono-' })
+    # 任何非文件名词形登记（尤其 family 词形）指向它，都表示槽位仍在使用。
+    $filenameEntryPattern = '^' + [regex]::Escape($Prefix) + '-.* \(TrueType\)$'
+    $live = @($referencing | Where-Object { $_.Name -notmatch $filenameEntryPattern })
     if ($live.Count -gt 0) { continue }
     [pscustomobject]@{ File = $f.FullName; Name = $f.Name;
         EntryNames = @($referencing | ForEach-Object { $_.Name }) }
@@ -102,15 +103,29 @@ public static extern int AddFontResource(string lpFileName);
 public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 '@
 
-# 先清理残留再写入新文件: 释放 GDI 锁 → 删文件 → 删登记项。文件被占用则立即报错
-# 停止 (注册表保持原样), 不允许半清理状态进入安装。
+ # 两阶段是幂等入口的关键：先对全部候选释放字体资源并独占探测，
+ # 任一文件不可删就在任何注册表/文件 mutation 前中止，避免留下半清理态。
+foreach ($s in $stale) {
+    try {
+        [Win32.Native]::RemoveFontResource($s.File) | Out-Null
+        $probe = [System.IO.File]::Open(
+            $s.File,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::ReadWrite,
+            [System.IO.FileShare]::None
+        )
+        $probe.Dispose()
+    } catch {
+        throw "预演清理失败，未执行任何注册表或文件变更: $($s.File) — 请关闭使用该槽位的终端/编辑器后重试。"
+    }
+}
+
 foreach ($s in $stale) {
     [Win32.Native]::RemoveFontResource($s.File) | Out-Null
     try {
         Remove-Item -LiteralPath $s.File -Force -ErrorAction Stop
     } catch {
-        Write-Error "旧版本槽位文件被占用, 无法清理: $($s.File) — 请关闭使用该股位的终端/编辑器后重试。安装已中止, 未做任何部分变更。"
-        throw $_
+        Write-Error "旧版本槽位文件被占用, 无法清理: $($s.File) — 请关闭使用该槽位的终端/编辑器后重试。"
     }
     foreach ($n in $s.EntryNames) {
         Remove-ItemProperty -Path $RegPath -Name $n -ErrorAction Stop

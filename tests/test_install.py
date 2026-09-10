@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -9,6 +10,10 @@ ROOT = Path(__file__).resolve().parents[1]
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 pytestmark = pytest.mark.skipif(POWERSHELL is None, reason="PowerShell is required for installer execution")
 STYLES = ("Regular", "Bold", "Italic", "BoldItalic")
+
+def test_recipe_schema_has_exactly_the_installer_style_slots():
+    schema = json.loads((ROOT / "recipes/schema.json").read_text(encoding="utf-8"))
+    assert set(schema["properties"]["styles"]["properties"]) == set(STYLES)
 
 
 def run_installer(tmp_path, selector, variant, family, prefix, missing=False):
@@ -93,6 +98,8 @@ def test_whatif_lists_legacy_slot_cleanup_without_mutations(tmp_path):
     stale_regular.write_bytes(b"legacy shadow regular")
     stale_bold = font_dir / "FiraCodeMapleMono-Bold-v41.ttf"
     stale_bold.write_bytes(b"legacy shadow bold")
+    cross_family = font_dir / "FiraCodeSarasaMono-Regular-v42.ttf"
+    cross_family.write_bytes(b"other family")
     appdata = tmp_path / "roaming"
     settings = appdata / "Code/User/settings.json"
     settings.parent.mkdir(parents=True)
@@ -124,6 +131,7 @@ def test_whatif_lists_legacy_slot_cleanup_without_mutations(tmp_path):
     assert "FiraCodeMapleMono-Regular (TrueType)" in combined
     assert "FiraCodeMapleMono-Bold-v41.ttf" in combined
     assert "CLEAN" in combined
+    assert "FiraCodeSarasaMono-Regular-v42.ttf" not in combined
     assert "MUTATION" not in combined
     # 计划阶段零变更：残留文件原样在位，settings 未被触碰
     assert stale_regular.read_bytes() == b"legacy shadow regular"
@@ -179,7 +187,7 @@ def test_whatif_keeps_live_versioned_slot_referenced_by_family_entry(tmp_path):
                             cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8")
     combined = result.stdout + result.stderr
     assert result.returncode == 0, combined
-    assert "FiraCodeMapleMono-Bold-v99.ttf" in combined          # 旧残留照常列出
+    assert "FiraCodeMapleMono-Bold-v99.ttf" not in combined  # 跨家族残留不应进入当前计划
     assert "FiraCodeSarasaMono-Regular-v42.ttf" not in combined  # 活槽位文件不进 CLEAN
     assert "MUTATION" not in combined
     assert live_slot.read_bytes() == b"live via family entry"
