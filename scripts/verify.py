@@ -25,7 +25,7 @@ def main():
     all_passed = True
 
     # 1. 四字面文件存在性
-    subfamilies = ["Regular", "Bold", "Italic", "BoldItalic"]
+    subfamilies = catalog.STYLES
     for sub in subfamilies:
         p = paths[sub]
         if not p.exists():

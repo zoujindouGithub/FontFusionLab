@@ -22,8 +22,10 @@ def main():
     glyph_prefix = 'cjk'
     errors = []
     for style in ('Regular', 'Bold'):
-        source_style = recipe['styles'][style]['source_style']
-        source_path = catalog.source_path(recipe['cjk']['source'], source_style)
+        style_cfg = recipe['styles'][style]
+        source_style = style_cfg['source_style']
+        source_id = style_cfg.get('cjk_source', recipe['cjk']['source'])
+        source_path = catalog.source_path(source_id, source_style)
         with TTFont(source_path) as source, TTFont(directory / f"{recipe['file_prefix']}-{style}.ttf") as target:
             sc, tc = source.getBestCmap(), target.getBestCmap()
             unit_scale = target['head'].unitsPerEm / source['head'].unitsPerEm

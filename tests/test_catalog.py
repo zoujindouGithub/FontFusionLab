@@ -33,7 +33,7 @@ def test_source_integrity_is_checked_before_consumption(tmp_path):
     manifest.write_text(json.dumps({'schema_version': 1, 'sources': {'fixture': {'license': 'OFL-1.1', 'files': {'Regular': {'path': 'font.ttf', 'sha256': hashlib.sha256(b'original').hexdigest()}}}}}))
     assert c.source_path('fixture', 'Regular', manifest_path=manifest, root=tmp_path) == source
     source.write_bytes(b'tampered')
-    with pytest.raises(ValueError, match='SHA256'):
+    with pytest.raises(c.SourceIntegrityError):
         c.source_path('fixture', 'Regular', manifest_path=manifest, root=tmp_path)
 
 
@@ -46,7 +46,7 @@ def test_private_sources_only_resolve_from_local_mapping(tmp_path):
     local = tmp_path / 'local.json'
     local.write_text(json.dumps({'sources': {'private-test': {'Regular': str(source)}}}))
     assert c.source_path('private-test', 'Regular', manifest_path=manifest, local_path=local) == source
-    with pytest.raises(ValueError, match='Unknown source'):
+    with pytest.raises(c.RecipeError):
         c.source_path('private-test', 'Regular', manifest_path=manifest, local_path=tmp_path/'absent.json')
 
 

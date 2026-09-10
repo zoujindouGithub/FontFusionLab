@@ -5,7 +5,7 @@ from pathlib import Path
 import catalog
 
 ROOT = Path(__file__).resolve().parent.parent
-STYLES = ('Regular', 'Bold', 'Italic', 'BoldItalic')
+STYLES = catalog.STYLES
 VERSION = '2.0.0'
 
 
@@ -40,7 +40,8 @@ def write_variant_readme(recipe):
 
 def main():
     output_root = ROOT / 'build'
-    release_dir = ROOT / 'release'
+    # 默认目录与发布文档一致；版本号由本文件的 VERSION 常量统一维护。
+    release_dir = ROOT / 'release' / f'v{VERSION}'
     argv = sys.argv[1:]
     if '--output-root' in argv:
         output_root = Path(argv[argv.index('--output-root') + 1])

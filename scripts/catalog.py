@@ -2,15 +2,23 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import urllib.request
+from pathlib import Path
 
 import jsonschema
 
 ROOT = Path(__file__).resolve().parent.parent
 STYLES = ('Regular', 'Bold', 'Italic', 'BoldItalic')
 DEFAULT_RECIPE = 'firacode-sarasa'
+
+
+class RecipeError(ValueError):
+    """配方/来源登记协议错误；保留 ValueError 兼容旧调用方。"""
+
+
+class SourceIntegrityError(ValueError):
+    """来源内容完整性错误；校验失败必须熔断而非继续消费。"""
 
 
 def read_json(path):
@@ -21,7 +29,7 @@ def validate(data, schema):
     try:
         jsonschema.Draft202012Validator(read_json(schema)).validate(data)
     except jsonschema.ValidationError as exc:
-        raise ValueError(f'Invalid {Path(schema).parent.name}: {exc.message}') from exc
+        raise RecipeError(f'Invalid {Path(schema).parent.name}: {exc.message}') from exc
 
 
 def public_sources(manifest_path=ROOT / 'sources/manifest.json'):
@@ -34,7 +42,7 @@ def load_recipe(selector=DEFAULT_RECIPE):
     path = Path(selector)
     if path.suffix != '.json':
         if path.name != str(selector):
-            raise ValueError('Recipe selector must be an ID or JSON path')
+            raise RecipeError('Recipe selector must be an ID or JSON path')
         path = ROOT / 'recipes' / f'{selector}.json'
     recipe = read_json(path)
     validate(recipe, ROOT / 'recipes/schema.json')
@@ -43,7 +51,7 @@ def load_recipe(selector=DEFAULT_RECIPE):
         for style, config in recipe['styles'].items():
             for sid in (config['base'], config.get('cjk_source', recipe['cjk']['source'])):
                 if sid not in sources or config['source_style'] not in sources[sid]['files']:
-                    raise ValueError(f'Production recipe requires public source/style: {sid}/{style}')
+                    raise RecipeError(f'Production recipe requires public source/style: {sid}/{style}')
     return recipe
 
 
@@ -67,7 +75,7 @@ def source_path(source_id, style, manifest_path=ROOT / 'sources/manifest.json',
     if source_id not in sources:
         local = read_json(local_path).get('sources', {}) if Path(local_path).is_file() else {}
         if source_id not in local or style not in local[source_id]:
-            raise ValueError(f'Unknown source/style: {source_id}/{style}; private sources require sources/local.json')
+            raise RecipeError(f'Unknown source/style: {source_id}/{style}; private sources require sources/local.json')
         path = Path(local[source_id][style]).expanduser()
         if not path.is_absolute():
             path = Path(root) / path
@@ -77,10 +85,12 @@ def source_path(source_id, style, manifest_path=ROOT / 'sources/manifest.json',
     entry = sources[source_id]['files'][style]
     root = Path(root).resolve()
     if 'path' in entry:
+        # 路径必须留在仓内，避免恶意 manifest 借 ../ 读取任意本机文件。
         path = (root / entry['path']).resolve()
         if not path.is_relative_to(root):
-            raise ValueError('Public source paths must stay inside the repository')
+            raise RecipeError('Public source paths must stay inside the repository')
     else:
+        # 下载先写随机临时文件，完整校验后原子替换，避免半文件进入缓存被消费。
         path = root / '.cache/sources' / f"{entry['sha256']}.ttf"
         if not path.exists():
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -89,12 +99,14 @@ def source_path(source_id, style, manifest_path=ROOT / 'sources/manifest.json',
             try:
                 urllib.request.urlretrieve(entry['url'], temporary)
                 if sha256(temporary) != entry['sha256']:
-                    raise ValueError(f'SHA256 mismatch: {source_id}/{style}')
+                    # 哈希不匹配必须熔断，不能把不可信来源留在缓存或交给 fontTools。
+                    raise SourceIntegrityError(f'SHA256 mismatch: {source_id}/{style}')
                 temporary.replace(path)
             finally:
                 temporary.unlink(missing_ok=True)
     if sha256(path) != entry['sha256']:
-        raise ValueError(f'SHA256 mismatch: {source_id}/{style}')
+        # 已有缓存也必须复核，防止外部改写绕过下载阶段的完整性门禁。
+        raise SourceIntegrityError(f'SHA256 mismatch: {source_id}/{style}')
     return path
 
 
