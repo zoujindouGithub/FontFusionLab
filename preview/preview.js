@@ -30,20 +30,47 @@ async function init() {
   for (const v of variants) {
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `
-      <div class="card-header">
-        <h3>${v.family} <small>(${v.status})</small></h3>
-        <button aria-expanded="true" aria-controls="body-${v.id}" aria-label="隐藏 ${v.family} 样例">Toggle</button>
-      </div>
-      <p>${v.description}</p>
-      <div id="body-${v.id}" class="variant-body">
-        ${['Regular', 'Bold', 'Italic', 'BoldItalic'].map(s => `<div class="style-block" data-style="${s}"><h4>${s}</h4><div class="sample-text"></div></div>`).join('')}
-      </div>
-    `;
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const heading = document.createElement('h3');
+    const familyLabel = document.createElement('small');
+    heading.textContent = `${v.family} `;
+    familyLabel.textContent = `(${v.status})`;
+    heading.appendChild(familyLabel);
+
+    const bodyId = `body-${v.id}`;
+    const toggle = document.createElement('button');
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.setAttribute('aria-controls', bodyId);
+    toggle.setAttribute('aria-label', `隐藏 ${v.family} 样例`);
+    toggle.textContent = 'Toggle';
+    header.append(heading, toggle);
+
+    const description = document.createElement('p');
+    description.textContent = v.description;
+
+    const body = document.createElement('div');
+    body.setAttribute('id', bodyId);
+    body.className = 'variant-body';
+    const styleBlocks = new Map();
+    for (const name of ['Regular', 'Bold', 'Italic', 'BoldItalic']) {
+      const block = document.createElement('div');
+      block.className = 'style-block';
+      block.setAttribute('data-style', name);
+      const styleHeading = document.createElement('h4');
+      styleHeading.textContent = name;
+      const sample = document.createElement('div');
+      sample.className = 'sample-text';
+      block.append(styleHeading, sample);
+      body.appendChild(block);
+      styleBlocks.set(name, { block, sample });
+    }
+
+    card.append(header, description, body);
     stack.appendChild(card);
 
-    card.querySelector('button').addEventListener('click', (e) => {
-      const body = document.getElementById(`body-${v.id}`);
+    toggle.addEventListener('click', (e) => {
       const expanded = e.target.getAttribute('aria-expanded') === 'true';
       body.hidden = expanded;
       e.target.setAttribute('aria-expanded', !expanded);
@@ -52,8 +79,9 @@ async function init() {
     for (const [name, url] of Object.entries(v.styles)) {
       const weight = name.includes('Bold') ? '700' : '400';
       const style = name.includes('Italic') ? 'italic' : 'normal';
-      const block = card.querySelector(`[data-style="${name}"]`);
-      const sample = block.querySelector('.sample-text');
+      const styleElements = styleBlocks.get(name);
+      const block = styleElements.block;
+      const sample = styleElements.sample;
 
       try {
         await loadFont(v.family, url, weight, style);
@@ -64,10 +92,15 @@ async function init() {
         loadedCount++;
       } catch (e) {
         sample.remove();
-        block.innerHTML += `<span class="error-msg">Failed: ${e.message}</span>`;
+        const errorMessage = document.createElement('span');
+        errorMessage.className = 'error-msg';
+        errorMessage.textContent = `Failed: ${e.message}`;
+        block.appendChild(errorMessage);
         block.classList.add('is-error');
         errors.hidden = false;
-        errors.innerHTML += `<li>${v.family} ${name}: ${e.message}</li>`;
+        const errorItem = document.createElement('li');
+        errorItem.textContent = `${v.family} ${name}: ${e.message}`;
+        errors.appendChild(errorItem);
       }
     }
   }
