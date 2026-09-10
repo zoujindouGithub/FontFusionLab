@@ -44,9 +44,42 @@ if ($missing.Count -gt 0) {
     throw "缺少 $($missing.Count) 个字体文件, 已中止安装"
 }
 
-# WhatIf: 只输出解析后的计划, 不加载原生库/不复制/不写注册表。
+# 旧版本槽位残留清理。为什么必须做：旧产线把同 family 的 TTF 注册成文件名词形
+# (如 'FiraCodeMapleMono-Regular (TrueType)' -> FiraCodeMapleMono-Regular-vNN.ttf)。
+# GDI 对同一 family 多文件去重选字时, 这些残留会遮蔽本产线新注册的字形
+# (实测: 新装 Maple CJK 被旧 Sarasa 时代 -v42 文件顶掉)。因此升级安装必须与新装
+# 同批清理, 保证"单一幂等入口"。识别: 文件名匹配 FiraCode(Maple|Sarasa)Mono-*-vNN.ttf
+# 且位于用户字体目录; 只删这些带版本槽的文件及其文件名词形登记项,
+# 本脚本自用的标准/槽位登记项 (family 词形) 不受影响。
+$stalePattern = '^FiraCode(Maple|Sarasa)Mono-.*-v\d+\.ttf$'
+$staleFiles = @()
+if (Test-Path -LiteralPath $FontDir) {
+    $staleFiles = @(Get-ChildItem -LiteralPath $FontDir -Filter '*.ttf' -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match $stalePattern })
+}
+$regInfo = Get-ItemProperty -Path $RegPath -ErrorAction SilentlyContinue
+$stale = foreach ($f in $staleFiles) {
+    $referencing = @()
+    if ($regInfo) {
+        $referencing = @($regInfo.PSObject.Properties | Where-Object {
+            $_.Name -like '* (TrueType)' -and (([string]$_.Value | Split-Path -Leaf) -eq $f.Name)
+        })
+    }
+    # 只要存在任一"非文件名词形"登记项(本产线 family 词形合法注册)指向该文件,
+    # 它就是活槽位, 绝不能删; 只有孤儿文件或纯旧词形登记的文件才是残留。
+    $live = @($referencing | Where-Object { $_.Name -notmatch '^FiraCode(Maple|Sarasa)Mono-' })
+    if ($live.Count -gt 0) { continue }
+    [pscustomobject]@{ File = $f.FullName; Name = $f.Name;
+        EntryNames = @($referencing | ForEach-Object { $_.Name }) }
+}
+
+# WhatIf: 只输出解析后的计划 (含 CLEAN 条目), 不加载原生库/不复制/不写注册表/不删除。
 # (不依赖 cmdlet WhatIf 传播: 预检已通过, 此处显式分支。)
 if ($WhatIfPreference) {
+    foreach ($s in $stale) {
+        $names = if ($s.EntryNames.Count) { $s.EntryNames -join ', ' } else { '(无登记项)' }
+        Write-Output "  [WhatIf] CLEAN 旧版本槽位: $($s.Name) 登记项: $names"
+    }
     foreach ($sub in $subfamilies) {
         $registryStyle = if ($sub -eq 'BoldItalic') { 'Bold Italic' } else { $sub }
         Write-Output "  [WhatIf] 注册表项: '$Family $registryStyle (TrueType)' -> $BuildRoot\$($recipeInfo.id)\$Prefix-$sub.ttf"
@@ -68,6 +101,23 @@ public static extern int AddFontResource(string lpFileName);
 [DllImport("user32.dll", CharSet = CharSet.Auto)]
 public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 '@
+
+# 先清理残留再写入新文件: 释放 GDI 锁 → 删文件 → 删登记项。文件被占用则立即报错
+# 停止 (注册表保持原样), 不允许半清理状态进入安装。
+foreach ($s in $stale) {
+    [Win32.Native]::RemoveFontResource($s.File) | Out-Null
+    try {
+        Remove-Item -LiteralPath $s.File -Force -ErrorAction Stop
+    } catch {
+        Write-Error "旧版本槽位文件被占用, 无法清理: $($s.File) — 请关闭使用该股位的终端/编辑器后重试。安装已中止, 未做任何部分变更。"
+        throw $_
+    }
+    foreach ($n in $s.EntryNames) {
+        Remove-ItemProperty -Path $RegPath -Name $n -ErrorAction Stop
+    }
+    $namesText = if ($s.EntryNames.Count) { $s.EntryNames -join ', ' } else { '(无登记项)' }
+    Write-Output "  [CLEAN] 移除旧版本槽位: $($s.Name) 登记项: $namesText"
+}
 
 foreach ($sub in $subfamilies) {
     $baseName = "$Prefix-$sub"

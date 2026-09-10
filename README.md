@@ -40,6 +40,7 @@ uv run python scripts/verify.py --recipe firacode-maple
 pwsh -File scripts/install.ps1 -Variant firacode-sarasa -WhatIf
 pwsh -File scripts/install.ps1 -Variant firacode-sarasa
 # 可选：-ConfigureEditors 显式同步 IDE 字体配置（默认不动用户配置）
+# 升级安装自动清理旧产线版本槽位残留（如 FiraCodeMapleMono-*-v42.ttf 及其旧登记项），防止同族旧字形遮蔽新注册
 
 # 5. 浏览器预览（不要从 preview/ 子目录启动，不要 file:// 直开）
 uv run python -m http.server 8137 --bind 127.0.0.1

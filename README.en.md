@@ -40,6 +40,7 @@ uv run python scripts/verify.py --recipe firacode-maple
 pwsh -File scripts/install.ps1 -Variant firacode-sarasa -WhatIf
 pwsh -File scripts/install.ps1 -Variant firacode-sarasa
 # Optional: -ConfigureEditors also syncs IDE font settings (user config untouched by default)
+# Upgrade installs auto-clean legacy version-slot leftovers (e.g. FiraCodeMapleMono-*-v42.ttf and their old registry entries), preventing same-family stale glyphs from shadowing the new registration
 
 # 5. Browser preview (serve from the repository root, never file://)
 uv run python -m http.server 8137 --bind 127.0.0.1
