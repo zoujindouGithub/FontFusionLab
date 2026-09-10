@@ -17,7 +17,7 @@ import array
 import copy
 import io
 import os
-import sys
+from pathlib import Path
 
 import ttfautohint
 from fontTools.subset import Options as SubOptions, Subsetter
@@ -113,6 +113,22 @@ def cjk_codepoints(font: TTFont) -> set[int]:
         if in_cjk_range or is_ambiguous_quote or is_common_punct:
             selected.add(codepoint)
     return selected
+
+def injection_codepoints(base: TTFont, source: TTFont, base_path, source_path) -> set[int]:
+    """按来源文件身份决定 CJK 注入集；不同来源必须覆盖基底已有 CJK。"""
+    source_cps = cjk_codepoints(source)
+    if Path(base_path).resolve() != Path(source_path).resolve():
+        return source_cps
+    return source_cps - base.getBestCmap().keys()
+
+
+def finalize_face(font: TTFont, family: str, style: str, out_path: str) -> None:
+    """统一完成命名、OTS overlap 清理与落盘，保持各字面收尾等价。"""
+    apply_family_naming(font, family, style)
+    cleared = strip_overlap_flags(font)
+    print(f"  清除 {cleared} 个 simple 字形的 OVERLAP_SIMPLE 标志 (OTS 兼容)")
+    font.save(out_path)
+
 
 
 def restore_box_drawing_programs(target: TTFont, orig: TTFont) -> int:
@@ -246,7 +262,7 @@ def build_upright(style: str, recipe: dict, base_path, source_path, out_path: st
     print(f"\n[{recipe['id']}/{style}] === 开始全量构建正体 ===")
     fira = TTFont(base_path)
     with TTFont(source_path) as source:
-        inject_cps = cjk_codepoints(source) - fira.getBestCmap().keys()
+        inject_cps = injection_codepoints(fira, source, base_path, source_path)
         print(f"  识别并准备注入 CJK 码位: {len(inject_cps)} 个")
         inject_cjk(fira, source, inject_cps, cjk_scale)
 
@@ -267,10 +283,7 @@ def build_upright(style: str, recipe: dict, base_path, source_path, out_path: st
     restored_count = restore_box_drawing_programs(hinted_font, orig_fira)
     print(f"  成功精确还原 {restored_count} 个制表符字形程序")
 
-    apply_family_naming(hinted_font, recipe["family"], style)
-    cleared = strip_overlap_flags(hinted_font)
-    print(f"  清除 {cleared} 个 simple 字形的 OVERLAP_SIMPLE 标志 (OTS 兼容)")
-    hinted_font.save(out_path)
+    finalize_face(hinted_font, recipe["family"], style, out_path)
     print(f"[{recipe['id']}/{style}] 正体生成成功 -> {out_path} ({os.path.getsize(out_path) // 1024} KB)")
 
 
@@ -300,15 +313,11 @@ def build_italic(style: str, recipe: dict, base_path, source_path, out_path: str
         font["cmap"].tables.append(subtable)
 
     with TTFont(source_path) as source:
-        # base 与注入源同文件时注入集为空 (passthrough)，与旧产线等价。
-        inject_cps = cjk_codepoints(source) - font.getBestCmap().keys()
+        inject_cps = injection_codepoints(font, source, base_path, source_path)
         print(f"  识别并准备替换 CJK 码位: {len(inject_cps)} 个")
         inject_cjk(font, source, inject_cps, cjk_scale)
 
-    apply_family_naming(font, recipe["family"], style)
-    cleared = strip_overlap_flags(font)
-    print(f"  清除 {cleared} 个 simple 字形的 OVERLAP_SIMPLE 标志 (OTS 兼容)")
-    font.save(out_path)
+    finalize_face(font, recipe["family"], style, out_path)
     print(f"[{recipe['id']}/{style}] 斜体生成成功 -> {out_path} ({os.path.getsize(out_path) // 1024} KB)")
 
 

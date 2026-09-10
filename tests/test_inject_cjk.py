@@ -47,3 +47,18 @@ def test_injection_normalizes_overlap_without_changing_outline_or_metrics():
         assert list(flags) == [1, 1, 1]
         assert result['hmtx'][name] == (1000, 100)
         assert result.getBestCmap()[65] == 'A'
+
+def test_injection_selection_replaces_existing_cjk_for_distinct_source(tmp_path):
+    cp = 0x4E00
+    base = fixture_font(cp)
+    source = fixture_font(cp)
+    base_path = tmp_path / 'base.ttf'
+    source_path = tmp_path / 'source.ttf'
+
+    inject_cps = build.injection_codepoints(base, source, base_path, source_path)
+    assert inject_cps == {cp}
+    build.inject_cjk(base, source, inject_cps, 1.0)
+
+    assert base.getBestCmap()[cp].startswith('cjk')
+    assert base['hmtx'][base.getBestCmap()[cp]][0] == 2 * base['hmtx']['A'][0]
+    assert build.injection_codepoints(base, source, base_path, base_path) == set()
