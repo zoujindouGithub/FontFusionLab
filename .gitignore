@@ -4,12 +4,21 @@ merged-v4/*.ttf
 !FiraCode-src/*.ttf
 !MapleMono-src/*.ttf
 !MapleItalic-src/*.ttf
+!SarasaFixedSC-src/*.ttf
 archives/
 
-# 源字体 zip 体积过大（GitHub 单文件 100MB 限制），不入库
-archives/*.zip
+# 构建产物与 Release 输出按目录隔离，不入库
+build/
+release/
+*.zip
+
+# 私有来源映射只允许存在于本机（模板 local.example.json 入库）
+sources/local.json
+.cache/
 
 # Python
+.venv/
+.pytest_cache/
 __pycache__/
 *.pyc
 
@@ -19,9 +28,5 @@ __pycache__/
 .idea/
 
 # 渲染对比等临时产物
-# Release 产物
-release/
-*.zip
-
 _tmp/
 *.tmp

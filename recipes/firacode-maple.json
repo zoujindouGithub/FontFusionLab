@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "firacode-maple",
+  "status": "production",
+  "family": "FiraCode Maple Mono",
+  "file_prefix": "FiraCodeMapleMono",
+  "cjk": {
+    "source": "maple-cn",
+    "scale": 1.05
+  },
+  "styles": {
+    "Regular": {
+      "base": "firacode",
+      "source_style": "Regular",
+      "autohint": true
+    },
+    "Bold": {
+      "base": "firacode",
+      "source_style": "Bold",
+      "autohint": true
+    },
+    "Italic": {
+      "base": "maple-italic",
+      "source_style": "Italic",
+      "autohint": false,
+      "cjk_source": "maple-italic"
+    },
+    "BoldItalic": {
+      "base": "maple-italic",
+      "source_style": "BoldItalic",
+      "autohint": false,
+      "cjk_source": "maple-italic"
+    }
+  }
+}

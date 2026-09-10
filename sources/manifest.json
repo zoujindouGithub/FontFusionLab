@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "firacode": {
+      "license": "OFL-1.1",
+      "upstream": "https://github.com/ryanoasis/nerd-fonts",
+      "files": {
+        "Regular": {
+          "path": "FiraCode-src/FiraCodeNerdFontMono-Regular.ttf",
+          "sha256": "53eebbaaa09c483ebb27fdd5cf21073cc4b760308e5d666728e9db2f41616c00"
+        },
+        "Bold": {
+          "path": "FiraCode-src/FiraCodeNerdFontMono-Bold.ttf",
+          "sha256": "7435c06ecc46dc975d2c356bf9bf1d8bc2226fdb1a877e6e9580193aae429519"
+        }
+      }
+    },
+    "maple-cn": {
+      "license": "OFL-1.1",
+      "upstream": "https://github.com/subframe7536/maple-font",
+      "files": {
+        "Regular": {
+          "path": "MapleMono-src/MapleMono-NF-CN-Regular.ttf",
+          "sha256": "bb8e8e8c263896f42555107202f1847f7a42c340a3e532df9c4d585c9794411c"
+        },
+        "Bold": {
+          "path": "MapleMono-src/MapleMono-NF-CN-Bold.ttf",
+          "sha256": "9e0c22a032c255b2da2c073d6cca6f8cf6fd6f214ae5407eb9f1aa523713729b"
+        }
+      }
+    },
+    "maple-italic": {
+      "license": "OFL-1.1",
+      "upstream": "https://github.com/subframe7536/maple-font",
+      "files": {
+        "Italic": {
+          "path": "MapleItalic-src/MapleMono-NF-CN-Italic.ttf",
+          "sha256": "39e6c6e611e65e6d0780f6279561f954f9db51221987d0924c45f6121eaf9054"
+        },
+        "BoldItalic": {
+          "path": "MapleItalic-src/MapleMono-NF-CN-BoldItalic.ttf",
+          "sha256": "9d6e76fbb5767406efd1f5ae2d32f5439de3b4d4063b128e4186ad5619267120"
+        }
+      }
+    },
+    "sarasa-sc": {
+      "license": "OFL-1.1",
+      "upstream": "https://github.com/be5invis/Sarasa-Gothic",
+      "files": {
+        "Regular": {
+          "path": "SarasaFixedSC-src/SarasaFixedSC-Regular.ttf",
+          "sha256": "a083e4a03514fe5247130d41201faee545268e79e1026c65bc9383a332cd7d65"
+        },
+        "Bold": {
+          "path": "SarasaFixedSC-src/SarasaFixedSC-Bold.ttf",
+          "sha256": "2cc7f8a38520d412a47b2b17081d5c0fe0a709fbbb147d53b8c4896122bf05ca"
+        },
+        "Italic": {
+          "path": "SarasaFixedSC-src/SarasaFixedSC-Italic.ttf",
+          "sha256": "7755cf413ad397744ab394550811d7154d4a9a198d851ef29594109a580f10ae"
+        },
+        "BoldItalic": {
+          "path": "SarasaFixedSC-src/SarasaFixedSC-BoldItalic.ttf",
+          "sha256": "566964de5099ea874fe566c2ea95c513866ea3ef6bfced1494005db6dc0f1e4e"
+        }
+      }
+    }
+  }
+}

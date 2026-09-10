@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FontFusionLab Recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "status", "family", "file_prefix", "cjk", "styles"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "status": {"enum": ["production", "experimental"]},
+    "family": {"type": "string", "minLength": 1},
+    "file_prefix": {"type": "string", "pattern": "^[A-Za-z0-9-]+$"},
+    "cjk": {
+      "type": "object", "additionalProperties": false, "required": ["source", "scale"],
+      "properties": {"source": {"type": "string", "minLength": 1}, "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 2}}
+    },
+    "styles": {
+      "type": "object", "additionalProperties": false,
+      "required": ["Regular", "Bold", "Italic", "BoldItalic"],
+      "properties": {
+        "Regular": {"$ref": "#/$defs/style"}, "Bold": {"$ref": "#/$defs/style"},
+        "Italic": {"$ref": "#/$defs/style"}, "BoldItalic": {"$ref": "#/$defs/style"}
+      }
+    }
+  },
+  "$defs": {
+    "style": {
+      "type": "object", "additionalProperties": false, "required": ["base", "source_style", "autohint"],
+      "properties": {
+        "base": {"type": "string", "minLength": 1},
+        "source_style": {"enum": ["Regular", "Bold", "Italic", "BoldItalic"]},
+        "cjk_source": {"type": "string", "minLength": 1},
+        "autohint": {"type": "boolean"}
+      }
+    }
+  }
+}

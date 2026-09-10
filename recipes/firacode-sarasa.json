@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "firacode-sarasa",
+  "status": "production",
+  "family": "FiraCode Sarasa Mono",
+  "file_prefix": "FiraCodeSarasaMono",
+  "cjk": {
+    "source": "sarasa-sc",
+    "scale": 1.05
+  },
+  "styles": {
+    "Regular": {
+      "base": "firacode",
+      "source_style": "Regular",
+      "autohint": true
+    },
+    "Bold": {
+      "base": "firacode",
+      "source_style": "Bold",
+      "autohint": true
+    },
+    "Italic": {
+      "base": "maple-italic",
+      "source_style": "Italic",
+      "autohint": false
+    },
+    "BoldItalic": {
+      "base": "maple-italic",
+      "source_style": "BoldItalic",
+      "autohint": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+[project]
+name = "fontfusionlab"
+version = "2.0.0"
+description = "Recipe-driven multilingual programming font fusion"
+requires-python = ">=3.11"
+dependencies = ["fonttools>=4.58", "freetype-py>=2.5", "ttfautohint-py>=0.6", "jsonschema>=4.23"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["scripts"]
+testpaths = ["tests"]

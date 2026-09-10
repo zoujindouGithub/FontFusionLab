@@ -1,0 +1,10 @@
+{
+  "sources": {
+    "private-example": {
+      "Regular": "C:/your-private-fonts/Regular.ttf",
+      "Bold": "C:/your-private-fonts/Bold.ttf",
+      "Italic": "C:/your-private-fonts/Italic.ttf",
+      "BoldItalic": "C:/your-private-fonts/BoldItalic.ttf"
+    }
+  }
+}
