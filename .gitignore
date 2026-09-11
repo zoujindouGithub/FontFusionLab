@@ -1,15 +1,13 @@
 # 二进制字体产物不入库（GitHub 100MB 限制 + 可由脚本重建）
-merged-v4/*.ttf
 *.ttf
-!FiraCode-src/*.ttf
-!MapleMono-src/*.ttf
-!MapleItalic-src/*.ttf
-!SarasaFixedSC-src/*.ttf
-archives/
+
+# 字体源文件白名单: sources/<source-id>/*.ttf
+!sources/*/*.ttf
 
 # 构建产物与 Release 输出按目录隔离，不入库
 build/
 release/
+archives/
 *.zip
 
 # 私有来源映射只允许存在于本机（模板 local.example.json 入库）

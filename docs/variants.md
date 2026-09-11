@@ -12,8 +12,8 @@
 | 正体基底 | FiraCode Nerd Font Mono | FiraCode Nerd Font Mono |
 | 正体 CJK 来源 | Sarasa Fixed SC（注入缺失 CJK 码位） | Maple Mono CN（注入缺失 CJK 码位） |
 | 斜体基底 | MapleItalic（Maple 手写斜体骨架） | MapleItalic（同左） |
-| 斜体 CJK 策略 | 用 Sarasa Fixed SC 对应风格**替换**约 8.2k 个 CJK 码位 | **不替换**（base 与注入源同文件 → 注入集为空，passthrough），与旧 merged-v4 产线等价 |
-| CJK 缩放 | 1.05×（围绕排版框中心） | 1.05×（同左） |
+| 斜体 CJK 策略 | 用 Sarasa Fixed SC 对应风格**替换**约 8.2k 个 CJK 码位 | **不替换**（base 与注入源同文件 → 注入集为空，passthrough） |
+| CJK 缩放 | 1.035×（围绕排版框中心；Sarasa 字面率较高，无需 1.05×） | 1.05×（围绕排版框中心） |
 | 正体 hinting | 注入 CJK 经 `ttfautohint`；拉丁与 Box-Drawing 保留 FiraCode 原程序逐字节还原 | 同左 |
 | 斜体 hinting 差异 | 基底保留 Maple 原 hint；**注入的 Sarasa CJK 为无 hint 轮廓**（不做整字体 autohint，避免改写非 CJK） | 基底保留 Maple 原 hint，全部字形与旧产线一致 |
 | 质量门禁 | `verify.py` + `check-cjk-layout.py`（含 OVERLAP_SIMPLE OTS gate）全部 PASS | 同左，且斜体与旧产物逐字节等价对比通过 |
@@ -94,4 +94,4 @@ FiraCode Maple Mono
 
 **浏览器预览显示加载失败？** 预览只加载 `build/<id>/` 下的构建产物：先 `uv run python scripts/build.py --all`，并从仓库根目录（而非 `preview/`）启动 HTTP 服务。
 
-**历史 merged-v4 目录？** 旧单 Variant 时代的产物目录，已由按 Variant 隔离的 `build/` 取代，仅作历史对照，不再被任何脚本读写。
+**`sources/` 目录结构？** 字体源文件统一收纳在 `sources/<source-id>/` 下，子目录名与 `manifest.json` 中的 source ID 对应，新增源只需添加子目录和清单条目，不影响根目录。

@@ -5,7 +5,7 @@
 #   2. 注入来源: recipe.styles[style].cjk_source 覆盖 recipe.cjk.source; 缺省用全局。
 #      同一文件作为 base 与注入源时 (如 firacode-maple 斜体, base=maple-italic 且
 #      cjk_source=maple-italic), 注入集为空 (base 自身已含 CJK), 只走 passthrough
-#      变换 (ascender/descender 对齐、cmap 子表补齐、命名), 与旧 merged-v4 产线等价。
+#      变换 (ascender/descender 对齐、cmap 子表补齐、命名)。
 #   3. 正体: FiraCode base + ttfautohint + U+2500-U+259F box 程序逐字节还原。
 #   4. Chrome/OTS 兼容性: simple glyf OVERLAP_SIMPLE (0x40) 会使 OTS 拒绝整个字体。
 #      inject_cjk 对注入字形清标志 (tests/test_inject_cjk.py 锁定轮廓与度量不变);

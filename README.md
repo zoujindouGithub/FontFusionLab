@@ -16,7 +16,7 @@
 风格构成：
 
 - **FiraCode Sarasa Mono**：正体为 FiraCode Nerd Font Mono 拉丁 + Sarasa Fixed SC 正体 CJK；斜体沿用 Maple 手写斜体骨架（MapleItalic 基底），其 CJK 由 Sarasa Fixed SC 对应风格替换。
-- **FiraCode Maple Mono**：正体为 FiraCode 拉丁 + Maple Mono CN CJK；斜体完全沿用 MapleItalic 基底（其 CJK 即源内字形），与历史 merged-v4 产线等价。
+- **FiraCode Maple Mono**：正体为 FiraCode 拉丁 + Maple Mono CN CJK；斜体完全沿用 MapleItalic 基底（其 CJK 即源内字形），passthrough 不替换。
 - 注入字形的 advance 恒为当前字面两个拉丁格宽；这不是对所有应用、字号与显示设备都无回退的保证。
 
 字面边界与人工验收见 [Variant 指南](./docs/variants.md)；配方模型、OTS 兼容与 hinting 决策见 [设计笔记](./docs/design-notes.md)。
@@ -146,7 +146,7 @@ VS Code / Cursor：
 
 - [Fira Code](https://github.com/tonsky/FiraCode)，Nikita Prokopov 与项目作者，OFL-1.1。
 - [Maple Mono](https://github.com/subframe7536/maple-font)，subframe7536 与项目作者，OFL-1.1；提供 Maple CJK 与两个 Variant 的斜体基底。
-- [Sarasa Gothic / 更纱黑体](https://github.com/be5invis/Sarasa-Gothic)，Renzhi Li（Belleve Invis），OFL-1.1；提供 Sarasa Fixed SC，其中包含 Inter 项目、Adobe（保留字体名 `Source`）与 Google 的部分版权。上游声明已并入 [LICENSE](./LICENSE)，源目录亦保留 `SarasaFixedSC-src/LICENSE`。
+- [Sarasa Gothic / 更纱黑体](https://github.com/be5invis/Sarasa-Gothic)，Renzhi Li（Belleve Invis），OFL-1.1；提供 Sarasa Fixed SC，其中包含 Inter 项目、Adobe（保留字体名 `Source`）与 Google 的部分版权。上游声明已并入 [LICENSE](./LICENSE)，源目录亦保留 `sources/sarasa-sc/LICENSE`。
 - [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)，Ryan Gosse 与贡献者；项目工具 MIT，源字体与图标仍受各自许可证约束。
 - [Fusion-JetBrainsMapleMono](https://github.com/SpaceTimee/Fusion-JetBrainsMapleMono)，SpaceTimee，融合思路启发。
 

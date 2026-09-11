@@ -16,7 +16,7 @@ Each provides `Regular`, `Bold`, `Italic` and `BoldItalic`. They are peer produc
 Style composition:
 
 - **FiraCode Sarasa Mono**: uprights are FiraCode Nerd Font Mono Latin + Sarasa Fixed SC upright CJK; italics keep the handwritten Maple italic skeleton (MapleItalic base) with their CJK replaced by the matching Sarasa Fixed SC style.
-- **FiraCode Maple Mono**: uprights are FiraCode Latin + Maple Mono CN CJK; italics keep the MapleItalic base entirely (its CJK are the source's own outlines), equivalent to the legacy merged-v4 pipeline.
+- **FiraCode Maple Mono**: uprights are FiraCode Latin + Maple Mono CN CJK; italics keep the MapleItalic base entirely (its CJK are the source's own outlines), passthrough without replacement.
 - Injected glyph advances always equal two Latin cells of the current style; this is not a guarantee of seamless rendering or absence of fallback in every application, size or display.
 
 See the [Variant guide](./docs/variants.md) for style boundaries and manual acceptance, and the [design notes](./docs/design-notes.md) for the source/recipe model, OTS compatibility and hinting decisions.
@@ -146,7 +146,7 @@ Replace the family with `FiraCode Maple Mono` for the Maple Variant. Follow the 
 
 - [Fira Code](https://github.com/tonsky/FiraCode), Nikita Prokopov and project authors, OFL-1.1.
 - [Maple Mono](https://github.com/subframe7536/maple-font), subframe7536 and project authors, OFL-1.1; supplies Maple CJK and the italic bases for both Variants.
-- [Sarasa Gothic](https://github.com/be5invis/Sarasa-Gothic), Renzhi Li (Belleve Invis), OFL-1.1; supplies Sarasa Fixed SC, with portions attributed to the Inter Project, Adobe (Reserved Font Name `Source`) and Google. The upstream notice is merged into [LICENSE](./LICENSE), and `SarasaFixedSC-src/LICENSE` is preserved.
+- [Sarasa Gothic](https://github.com/be5invis/Sarasa-Gothic), Renzhi Li (Belleve Invis), OFL-1.1; supplies Sarasa Fixed SC, with portions attributed to the Inter Project, Adobe (Reserved Font Name `Source`) and Google. The upstream notice is merged into [LICENSE](./LICENSE), and `sources/sarasa-sc/LICENSE` is preserved.
 - [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts), Ryan Gosse and contributors; project tools MIT, source fonts and icons retain their own licenses.
 - [Fusion-JetBrainsMapleMono](https://github.com/SpaceTimee/Fusion-JetBrainsMapleMono), SpaceTimee, fusion design inspiration.
 
