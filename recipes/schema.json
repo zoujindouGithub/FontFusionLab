@@ -12,7 +12,11 @@
     "file_prefix": {"type": "string", "pattern": "^[A-Za-z0-9-]+$"},
     "cjk": {
       "type": "object", "additionalProperties": false, "required": ["source", "scale"],
-      "properties": {"source": {"type": "string", "minLength": 1}, "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 2}}
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "scale": {"type": "number", "exclusiveMinimum": 0, "maximum": 2},
+        "center_y": {"type": "number", "description": "Override vertical scale anchor (source design units); defaults to source hhea midpoint"}
+      }
     },
     "styles": {
       "type": "object", "additionalProperties": false,

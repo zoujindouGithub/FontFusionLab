@@ -183,7 +183,8 @@ def strip_overlap_flags(font: TTFont) -> int:
     return cleared
 
 
-def inject_cjk(font: TTFont, source: TTFont, codepoints: set[int], cjk_scale: float = 1.05) -> None:
+def inject_cjk(font: TTFont, source: TTFont, codepoints: set[int], cjk_scale: float,
+               center_y: float | None = None) -> None:
     """将注入源的轮廓放入基底的双倍 Latin 字格，不修改非 CJK 字形。
 
     Chrome/OTS 兼容: 展开 composite 后清除 simple glyf OVERLAP_SIMPLE (0x40)，
@@ -202,7 +203,7 @@ def inject_cjk(font: TTFont, source: TTFont, codepoints: set[int], cjk_scale: fl
     target_glyf = font["glyf"]
     target_hmtx = font["hmtx"]
     scale = font["head"].unitsPerEm / source["head"].unitsPerEm
-    source_center_y = (source["hhea"].ascender + source["hhea"].descender) / 2
+    source_center_y = center_y if center_y is not None else (source["hhea"].ascender + source["hhea"].descender) / 2
     order_set = set(font.getGlyphOrder())
     gname_to_target = {}
     latin_cell_width = target_hmtx[target_cmap[0x41]][0]
@@ -259,14 +260,15 @@ def inject_cjk(font: TTFont, source: TTFont, codepoints: set[int], cjk_scale: fl
             })
 
 
-def build_upright(style: str, recipe: dict, base_path, source_path, out_path: str, cjk_scale: float) -> None:
+def build_upright(style: str, recipe: dict, base_path, source_path, out_path: str,
+                  cjk_scale: float, center_y: float | None = None) -> None:
     """端到端构建正体字体 (Regular / Bold): FiraCode base + ttfautohint + box 程序还原"""
     print(f"\n[{recipe['id']}/{style}] === 开始全量构建正体 ===")
     fira = TTFont(base_path)
     with TTFont(source_path) as source:
         inject_cps = injection_codepoints(fira, source, base_path, source_path, replace=False)
         print(f"  识别并准备注入 CJK 码位: {len(inject_cps)} 个")
-        inject_cjk(fira, source, inject_cps, cjk_scale)
+        inject_cjk(fira, source, inject_cps, cjk_scale, center_y)
 
     buffer = io.BytesIO()
     fira.save(buffer)
@@ -289,7 +291,8 @@ def build_upright(style: str, recipe: dict, base_path, source_path, out_path: st
     print(f"[{recipe['id']}/{style}] 正体生成成功 -> {out_path} ({os.path.getsize(out_path) // 1024} KB)")
 
 
-def build_italic(style: str, recipe: dict, base_path, source_path, out_path: str, cjk_scale: float) -> None:
+def build_italic(style: str, recipe: dict, base_path, source_path, out_path: str,
+                 cjk_scale: float, center_y: float | None = None) -> None:
     """端到端构建斜体字体 (Italic / Bold Italic): maple-italic base + CJK 替换"""
     print(f"\n[{recipe['id']}/{style}] === 开始全量构建斜体 ===")
     font = TTFont(base_path)
@@ -317,7 +320,7 @@ def build_italic(style: str, recipe: dict, base_path, source_path, out_path: str
     with TTFont(source_path) as source:
         inject_cps = injection_codepoints(font, source, base_path, source_path, replace=True)
         print(f"  识别并准备替换 CJK 码位: {len(inject_cps)} 个")
-        inject_cjk(font, source, inject_cps, cjk_scale)
+        inject_cjk(font, source, inject_cps, cjk_scale, center_y)
 
     finalize_face(font, recipe["family"], style, out_path)
     print(f"[{recipe['id']}/{style}] 斜体生成成功 -> {out_path} ({os.path.getsize(out_path) // 1024} KB)")
@@ -326,6 +329,7 @@ def build_italic(style: str, recipe: dict, base_path, source_path, out_path: str
 def build_variant(recipe: dict, output_root=None) -> None:
     paths = catalog.font_paths(recipe, output_root)
     scale = recipe["cjk"]["scale"]
+    center_y = recipe["cjk"].get("center_y")
     for style in STYLES:
         style_cfg = recipe["styles"][style]
         base_id = style_cfg["base"]
@@ -335,9 +339,9 @@ def build_variant(recipe: dict, output_root=None) -> None:
         out_path = str(paths[style])
         os.makedirs(paths[style].parent, exist_ok=True)
         if style_cfg["autohint"]:
-            build_upright(style, recipe, base_path, source_path, out_path, scale)
+            build_upright(style, recipe, base_path, source_path, out_path, scale, center_y)
         else:
-            build_italic(style, recipe, base_path, source_path, out_path, scale)
+            build_italic(style, recipe, base_path, source_path, out_path, scale, center_y)
 
 
 def main():
